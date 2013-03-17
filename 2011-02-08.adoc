@@ -1,0 +1,166 @@
+= Manually setup KVM public bridge
+
+:blogpost-categories: KVM,KVM public bridge
+
+Setting up KVM public bridge manually is actually quite easy, 
+
+pass::[<!--more-->]
+
+reposting from 
+http://www.linuxquestions.org/questions/blog/sfxpt-393704/manually-setup-kvm-public-bridge-3107/
+
+To setup KVM public bridge, just follow 
+
+http://tldp.org/HOWTO/BRIDGE-STP-HOWTO/set-up-the-bridge.html
+and
+http://www.linux-kvm.org/page/Networking#public_bridge
+
+Here is my work log:
+
+--------------------------------------------------------------------------
+# My initial status
+% ifconfig 
+eth0      Link encap:Ethernet  HWaddr 00:1f:16:a4:d0:8c  
+          inet addr:192.168.0.108  Bcast:192.168.0.255  Mask:255.255.255.0
+          UP BROADCAST RUNNING MULTICAST  MTU:1500  Metric:1
+          RX packets:16888 errors:0 dropped:0 overruns:0 frame:0
+          TX packets:12404 errors:0 dropped:0 overruns:0 carrier:0
+          collisions:0 txqueuelen:1000 
+          RX bytes:24617836 (23.4 MiB)  TX bytes:921398 (899.8 KiB)
+          Interrupt:16 
+
+lo        Link encap:Local Loopback  
+          inet addr:127.0.0.1  Mask:255.0.0.0
+          UP LOOPBACK RUNNING  MTU:16436  Metric:1
+          RX packets:2 errors:0 dropped:0 overruns:0 frame:0
+          TX packets:2 errors:0 dropped:0 overruns:0 carrier:0
+          collisions:0 txqueuelen:0 
+          RX bytes:100 (100.0 B)  TX bytes:100 (100.0 B)
+
+# Disable dhcp clients if any!
+
+# Setup tun tap0
+% tunctl -t tap0 -g kvm
+Set 'tap0' persistent and owned by gid 103
+
+# Create the bridge interface.
+% brctl addbr br0
+
+# Add interfaces to the bridge.
+% brctl addif br0 eth0
+% brctl addif br0 tap0
+
+# Zero IP the interfaces.
+% ip addr flush eth0
+% ifconfig eth0 0.0.0.0
+% ifconfig tap0 0.0.0.0
+
+# Put up the bridge.
+% ifconfig br0 192.168.0.108 netmask 255.255.255.0 up
+% route add default gw 192.168.0.1 metric 1
+--------------------------------------------------------------------------
+
+This gives you a fixed IP, just replace the last 2 lines with your 
+normal DHCP command if you want a dynamic IP and have properly 
+configured br0 in /etc/network/interfaces.
+
+Status scheck,
+
+--------------------------------------------------------------------------
+% ifconfig
+br0       Link encap:Ethernet  HWaddr 00:1f:16:a4:d0:8c  
+          inet addr:192.168.0.108  Bcast:192.168.0.255  Mask:255.255.255.0
+          UP BROADCAST RUNNING MULTICAST  MTU:1500  Metric:1
+          RX packets:0 errors:0 dropped:0 overruns:0 frame:0
+          TX packets:0 errors:0 dropped:0 overruns:0 carrier:0
+          collisions:0 txqueuelen:0 
+          RX bytes:0 (0.0 B)  TX bytes:0 (0.0 B)
+
+eth0      Link encap:Ethernet  HWaddr 00:1f:16:a4:d0:8c  
+          UP BROADCAST RUNNING MULTICAST  MTU:1500  Metric:1
+          RX packets:66 errors:0 dropped:0 overruns:0 frame:0
+          TX packets:0 errors:0 dropped:0 overruns:0 carrier:0
+          collisions:0 txqueuelen:1000 
+          RX bytes:12636 (12.3 KiB)  TX bytes:0 (0.0 B)
+          Interrupt:16 
+
+lo        Link encap:Local Loopback  
+          inet addr:127.0.0.1  Mask:255.0.0.0
+          UP LOOPBACK RUNNING  MTU:16436  Metric:1
+          RX packets:4 errors:0 dropped:0 overruns:0 frame:0
+          TX packets:4 errors:0 dropped:0 overruns:0 carrier:0
+          collisions:0 txqueuelen:0 
+          RX bytes:200 (200.0 B)  TX bytes:200 (200.0 B)
+
+tap0      Link encap:Ethernet  HWaddr 8a:0d:1d:f2:79:a9  
+          UP BROADCAST RUNNING MULTICAST  MTU:1500  Metric:1
+          RX packets:0 errors:0 dropped:0 overruns:0 frame:0
+          TX packets:0 errors:0 dropped:0 overruns:0 carrier:0
+          collisions:0 txqueuelen:500 
+          RX bytes:0 (0.0 B)  TX bytes:0 (0.0 B)
+
+$ route
+Kernel IP routing table
+Destination     Gateway         Genmask         Flags Metric Ref    Use Iface
+192.168.0.0     *               255.255.255.0   U     0      0        0 br0
+default         192.168.0.1     0.0.0.0         UG    1      0        0 br0
+
+$ ping 192.168.0.1
+PING 192.168.0.1 (192.168.0.1) 56(84) bytes of data.
+64 bytes from 192.168.0.1: icmp_seq=1 ttl=127 time=0.368 ms
+64 bytes from 192.168.0.1: icmp_seq=2 ttl=127 time=0.356 ms
+64 bytes from 192.168.0.1: icmp_seq=3 ttl=127 time=0.328 ms
+^C
+
+# To start kvm:
+kvm -m 1024 -smp 2 -net nic,macaddr=52:54:00:39:81:49 -net tap,ifname=tap0,script=no,downscript=no . . .
+--------------------------------------------------------------------------
+
+That's it. 
+
+The guests will run on the same subnet as host, having the same route and
+DNS server.
+
+[[References_kvm_Networking]]
+== <<References_kvm_Networking,References: kvm Networking>>
+
+http://wiki.archlinux.org/index.php/QEMU
+
+http://www.linux-kvm.org/page/Networking
+http://jimmyg.org/blog/2009/sensible-kvm-networking.html
+http://en.gentoo-wiki.com/wiki/KVM
+
+[verse]
+KVM network scripts
+http://blog.bodhizazen.net/linux/kvm_network_scripts/
+
+http://www.linux-kvm.org/page/Simple_shell_script_to_manage_your_virtual_machine_with_bridged_networking
+
+http://compsoc.dur.ac.uk/~djw/qemu.html
+http://ubuntuforums.org/showthread.php?t=888903
+https://help.ubuntu.com/community/KVM/Networking
+http://kerneltrap.org/mailarchive/linux-kvm/2010/4/5/6260390
+http://www.linuxquestions.org/questions/linux-virtualization-90/on-qemu-kvm-qemu-ifup-script-not-found-on-slackware-13-a-778741/
+https://bbs.archlinux.org/viewtopic.php?id=99569
+
+Ref:
+
+http://tjworld.net/wiki/Linux/Ubuntu/VirtualMachinesWithVDENetworking
+
+[verse]
+How to Get Maximum Network Performance using paravirtual drivers and bridged networking
+http://www.linux-kvm.com/content/tip-how-get-maximum-network-performance-using-paravirtual-drivers-and-bridged-networking
+
+[verse]
+Simulate complex networks with qemu
+http://linux.owagu.com/2010/06/05/simulate-complex-networks-with-qemu-by-girish-venkatachalam/
+
+[verse]
+Networking with kvm and libvirt
+http://watzmann.net/blog/2007/04/networking-with-kvm-and-libvirt.html
+
+documented on:  2011-01-15, 2011-02-08
+******
+%%  <<References_kvm_Networking,References: kvm Networking>>
+
+******

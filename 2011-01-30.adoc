@@ -1,0 +1,159 @@
+Start synergy automatically when X starts
+
+:blogpost-categories: linux,synergy,display manager,gdm,Xsession
+
+To configure synergy to start automatically when the computer starts is not
+an easy task. Taking from
+
+[verse]
+Starting synergy automatically
+http://synergy2.sourceforge.net/autostart.html
+
+Here is what the official how-to says:
+
+- The steps to do that are different on each platform.
+
+- Typically, you need to edit three script files. 
+
+pass::[<!--more-->]
+
+- The first file will start synergy before a user logs in, the second will
+  kill that copy of synergy, and the third will start it again after the
+  user logs in.
+
+- The contents of the scripts varies greatly between systems so there's no
+  one definite place where you should insert your edits. However, these
+  scripts often exit before reaching the bottom so put the edits near the
+  top of the script.
+
+- The location and names of these files depend on the operating system and
+  display manager you're using. 
+
+The problem:
+
+- the offical how-to lists 9 files to check up. That's already
+  confusing. Moreover, the 3rd file for gdm is wrong.
+
+- the offical how-to need us to hack into offical display manager's start up
+  files. This is bad, because when the display manager is updated, all your
+  hacking is lost.
+
+Now, is there any better places, universal to all 3 display managers and 
+doesn't need to hack into exiting official code? 
+
+First, how about the .desktop files that freedesktop.org has specified as the standard method of how the applications should be started when you start a X session?::
+  No, it doesn't work. No synergyc in ps when X (re)starts. This is my test file:
+
+ $ cat /etc/xdg/autostart/synergy.desktop
+ [Desktop Entry]
+ Encoding=UTF-8
+ Exec=synergyc 192.168.0.106
+ StartupNotify=false
+ Terminal=false
+ TerminalOptions=
+ Type=Application
+
+OK, now how about the files under /etc/X11/Xsession.d, which should be common to all display managers?::
+  No, it doesn't work for this case as well. My troubleshooting of the problem
+reveals that none of the files under /etc/X11/Xsession.d/ are executed when
+gdm starts X, before a user logs in:
+
+ cd /etc/X11/Xsession.d
+ echo 12synergyc 51synergyc | xargs -n1 | xargs -i sh -x -c 'echo logger -i -t {} \`date --rfc-3339=ns\` > {}'
+ logger -i -t synergy `date --rfc-3339=ns`
+ pkill X
+ tail /var/log/syslog
+
+So, hacking into exiting official code is inevitable now. Which method
+will cause minimum damage and will survive display manager upgrade?
+
+Here is my solution:
+
+. Create a file /etc/X11/Xsession.d/70synergyc with the following content:
++
+-------------------------------------
+  $ cat /etc/X11/Xsession.d/70synergyc
+  /usr/bin/killall synergyc 
+  sleep 1 
+  /usr/bin/synergyc 192.168.0.106
+  logger -i -t synergyc `date --rfc-3339=ns`
+-------------------------------------
+
+. Give it mode 644. No need to make it executable because the scripts in
+/etc/X11/Xsession.d/ are sourced by Xsession, not executed.
+
+. Source it from '/etc/gdm/Init/Default' after the last "fi" before the "exit
+0" (or, as the offical how-to suggested, put the edits near the top of the
+script):
++
+-------------------------------------
+   $ tail -5 /etc/gdm/Init/Default
+   fi
+ 
+   . /etc/X11/Xsession.d/70synergyc
+ 
+   exit 0
+-------------------------------------
+
+. When the display manager get upgraded, you just need to do the last step
+again. You major modification is safe.
+
+. The '/etc/gdm/Init/Default' hack allows the synergy client to kick in
+before any user logs in. The 70synergyc under /etc/X11/Xsession.d/ ensures
+that whenever a user starts his/her new session, a new synergy client is
+initiated.
+
+Ref, 
+
+[verse]
+gdm and /etc/X11/Xsession.d
+http://thread.gmane.org/gmane.linux.debian.user/399313
+
+documented on:  2011-01-28
+
+[[Ref_Using_Synergy_software_KVM_with_OSX_and_Linux]]
+== Ref:Using Synergy software KVM with OSX and Linux<<Ref_Using_Synergy_software_KVM_with_OSX_and_Linux,_>>
+
+http://tacticalcoder.com/blog/2009/05/using-synergy-software-kvm-with-osx-and-linux/
+
+[[Starting_the_clients]]
+=== Starting the clients<<Starting_the_clients,_>>
+
+Starting the clients is the easy part. You have two choices. You can run the
+GUI or use the command line. . . The problem with this setup is that the
+client must be started each time you log in to your account. This can be
+frustrating if do not plan to keep a keyboard and mouse nearby. The ubuntu
+community documentation has instructions on setting up the client to
+automatically start. They can be found here. In a nutshell you make a script
+(Please note the IP address is the address of my server):
+
+ #/bin/bash
+ /usr/bin/killall synergyc
+ sleep 1
+ /usr/bin/synergyc --daemon --restart --name lin 192.168.2.10
+
+Notice the "-name lin" is the name of the screen I setup my my server in
+synergy.conf. Name this script 12synergy and make it executable. Place this
+script in the /etc/X11/Xsession.d folder. This causes Synergy to start as
+root when the computer boots. However you also need to edit some scripts so
+Synergy is killed and restarted as the user when they log in. This means
+editing the /etc/gdm/Init/Default file as root and placing the following
+after the last "fi" before the "exit 0":
+
+ # ADDED FOR SYNERGY
+ /usr/bin/killall synergyc
+ sleep 1
+ //usr/bin/synergyc --daemon --restart --name lin 192.168.2.10
+ # END SYNERGY
+
+This kills the Synergy client when a user logs in. and allow it to start up
+running as the user.
+
+documented on:  2011-01-28
+
+******
+%% <<Ref_Using_Synergy_software_KVM_with_OSX_and_Linux, Ref:Using Synergy software KVM with OSX and Linux>>
+
+%%% <<Starting_the_clients, Starting the clients>>
+
+******

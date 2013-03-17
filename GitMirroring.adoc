@@ -1,0 +1,369 @@
+= Git Mirroring, from SourceForge to GitHub
+
+:blogpost-categories: git
+
+Mirroring git repositories is quite easy, provided that you know how.  The problem is that nobody has given a comprehensive overview, and most "solutions" that I found on the Internet are half baked ones.
+
+Or, put it in another way, git is so flexible that there are many ways to mirror repositories. The question is, is the solution you are using the most appropriate for your situation?
+
+My situation is, I have a central git repository hosted on SourceForge, which I connect to from all sorts of different places. Now I want to mirror the repository to GitHub. I'll list all the solutions that I found on the Internet before giving out the solution for my case. Reading through all of them will help you understand why I say it is important to pick a solution that is most appropriate for your situation. 
+
+pass::[<!--more-->]
+
+== The "solutions"
+
+=== The perfect match
+
+There has actually already a write-up out there that perfectly matches what I was looking for:
+
+*Mirroring SourceForge Git repositories to GitHub*
+
+http://cweiske.de/tagebuch/mirror-sourceforge-git-github.htm
+
+However, there are many burning hoops you need to jump through in order to do that:
+
+- you have to create a bare repository that mirrors the main repository
+- you have to prepare a mirror script and 
+- run the mirror script in your cron job
+- most critically, you have to have a third *nix server (server-in-the-middle) to do the mirroring, and 
+- the server-in-the-middle needs to be equipped with a passwordless SSH key
+
+The good part is that you don't need to dig into knowing the http://git-scm.com/book/en/Customizing-Git-Git-Hooks[git hooks] in order to do the mirroring. However, that's too much requirements and too complicated for me. Nonetheless, if the requirements suit you well, then you can simply go for it. 
+
+
+=== Digging deeper, the git hooks
+
+If you have the knowledge of http://www.kernel.org/pub/software/scm/git/docs/githooks.html[git hooks], or don't minding digging into its details, then this is the answer. 
+
+
+.Automatically mirror a git repository
+[quote, answered Aug 27 '10 by Manoj Govindan, http://stackoverflow.com/questions/3583061/automatically-mirror-a-git-repository]
+____________
+I wrote a post-commit hook for just this purpose. The hook itself is simple; just add a file named post-commit to your .git/hooks/ directory with the following contents:
+
+ git push my_remote
+
+The post-commit file should be executable. Also make sure that you add a suitable remote repository with the name my_remote for this this hook to work.
+
+I also made a symlink named post-merge that points to post-commit. This is optional. If you do this you'll auto-sync after merges as well.
+
+UPDATE: If you want to ensure that your server, and your mirror do not get out of sync, and ensure that all branches are also backed up, your post-commit hook can use:
+
+ git push my_remote -f --mirror
+____________
+
+
+I skipped this solution for two main reasons. 
+
+. Having zero knowledge on git hooks, the above are still Greek to me. I.e., I still need to dig around to see how to make it works. 
+. Second but most importantly, in the previous method, the author stressed that the reason he chose his path is because "other people had the same idea but unfortunately failed because the SourceForge Git servers don't allow outgoing connections." So I gave up on it because I didn't want to spend days on it but still be scratching my head and saying to myself "I've done every correctly and have double checked everything, why it is still not working?"
+
+[[simplicity]]
+=== Back to simplicity again
+
+OK, forget about git hooks, is there any easier solutions? Well, here is another "solution", which seems quite simple:
+
+[quote, Abhijit Menon-Sen, http://toroid.org/ams/git-website-howto]
+____________
+You can push to more than one remote repository by adding more URLs under the [remote "web"] section in your .git/config.
+
+ [remote "web"]
+    url = ssh://server.example.org/home/ams/website.git
+    url = ssh://other.example.org/home/foo/website.git
+____________
+
+.Git push to multiple repositories simultaneously
+[quote, answered Nov 23 '10 by g19fanatic, http://stackoverflow.com/questions/4255865/git-push-to-multiple-repositories-simultaneously]
+____________
+
+Here is how to modify a config file for git that will allow you to push to multipe remote repositories without manually typing them all in (well only typing them in the first time and not after)
+
+In the .git/config file you can add multiple urls to a defined remote:
+
+ [remote "all"]
+     url=ssh://user@server/repos/g0.git
+     url=ssh://user@server/repos/g1.git
+
+If you git push all now you push to all the remote urls.
+
+==========================
+The remote “hack” is probably what I was looking for. It’s not redefining the git push -> git push origin HEAD alias but does the thing I want it to. Thanks. – Kissaki
+==========================
+____________
+
+
+The reason that I label this solution as half baked is:
+
+[quote, Jeet Sukumaran, http://jeetworks.org/node/22]
+____________
+As it happens, however, the above solution is not entirely satisfactory as it leads to git getting the status of your local with respect to the remotes confused. Or, alternatively, git gets it right and I am confused in my expectations. Either way, after a "git push all", my local is one commit behind and I have to "git pull" to sync up, even though there is absolutely no difference in source tree. So, my preferred solution now is to run a custom script that parses out all the remotes of the local git repository, and pushes to them individually:
+____________
+
+
+Then he went on giving his 120+lines of custom python code, but I'll skip including it here because I believe that there are better solutions than the 120+lines python code. 
+
+=== More simpler, how about ready made solutions?
+
+As you can see now, the git mirroring is quite a common request (e.g., http://stackoverflow.com/questions/11370239/creating-an-official-github-mirror[Creating an official github mirror]), I can't believe there isn't a ready made solution to it. Hmm... found it, how about this:
+
+*Gitslave*
+
+http://gitslave.sourceforge.net/
+
+[quote, http://codingkilledthecat.wordpress.com/2012/04/28/why-your-company-shouldnt-use-git-submodules/]
+____________
+
+Gitslave is a wrapper around Git that multiplexes git commits into multiple repositories. It effectively implements the "have parallel branches for each of your projects" solution to the merging problem by doing that for you – if you create a branch, it gets created everywhere. If you commit, all of your repositories create a commit, and so on.
+____________
+
+
+This seems very promising at first. However, having went through its whole tutorial at http://gitslave.sourceforge.net/tutorial-basic.html, I realized that its main focus is to commit/push into multiple repositories locally, not remotely. There is a huge difference between the two, and that feature/requirement is by design. Read it through nonetheless, it might suit your need if you are looking for ways to mirror the changes between different co-related local git repositories.
+
+
+=== Mirror for Backup
+
+Found this neat and precise one:
+
+*Mirror a GIT Repository for Backup*
+
+http://openhood.com/git/2010/04/09/mirror-a-git-repository-for-backup/
+
+"A quick way to easily maintain a complete mirror of a git repository. This is especially useful for backup."
+
+
+[source,shell]
+------------
+# go to your repository
+cd my_project
+ 
+# check your existing remote
+git remote -v
+# origin git@mydomain.tld:my_project.git (fetch)
+# origin git@mydomain.tld:my_project.git (push)
+ 
+# Add a new remote, a github.com private repository for example
+# the --mirror flag is what's different from a simple new remote
+git remote add --mirror git@github.com:Openhood/my_project.git
+ 
+# Check the new remote
+git remote -v
+# github git@github.com:Openhood/my_project.git (fetch)
+# github git@github.com:Openhood/my_project.git (push)
+# origin git@mydomain.tld:my_project.git (fetch)
+# origin git@mydomain.tld:my_project.git (push)
+ 
+# To discover the difference check you .git/config
+# the new remote has the config mirror = true
+cat .git/config
+# ... file start skipped ...
+# [remote "github"]
+#   url = git@github.com:Openhood/my_project.git
+#   fetch = +refs/*:refs/*
+#   mirror = true
+ 
+# Now all you have to do to mirror your entire repository is
+git push github
+------------
+
+The problem is that it didn't tell me how to do git repository mirroring automatically. I need a setup that will surely fires up, not something I have to remember doing manually each time. 
+
+Here is another similar half baked ones:
+
+*Setting up backup (mirror) repositories on GitHub*
+
+https://wincent.com/wiki/Setting_up_backup_(mirror)_repositories_on_GitHub
+
+[source,shell]
+------------
+# given local user $GIT_USER, $GITHUB_USER, and $GITHUB_REPO
+cd /path/to/repo
+sudo -u $GIT_USER git remote add --mirror github git@github.com:$GITHUB_USER/$GITHUB_REPO.git
+
+# either wait for the cron job to propagate the changes, or...
+sudo -u $GIT_USER -s -H
+git push github
+------------
+
+
+
+=== Now to server-side
+
+<<simplicity,Previously>>, I gave up git hooks, and sought for easier solutions on the client-side. That didn't went on well, so I went on looking for the server-side solutions, and found this:
+
+
+*Mirroring a git repository*
+
+http://toroid.org/ams/etc/git-repository-mirrors
+
+[quote, Abhijit Menon-Sen]
+____________
+The Archiveopteryx source code lives in a repository on git.aox.org, and the
+developers push commits to it. We set up github and gitorious as remote
+repositories on the server, and added a(nother) post-receive hook to push
+any new commits on to those two repositories.
+____________
+
+
+It is the closest to what I've been looking for so I'll include its main points/steps below:
+
+[quote, Abhijit Menon-Sen, http://toroid.org/ams/etc/git-repository-mirrors]
+____________
+On Github: I created an "aox" account, created an "aox" repository, and added arnt and myself as collaborators.
+
+On Gitorious: I created an account for myself, created a project named "aox", created a new "aox.git" repository, and added arnt and myself as collaborators on the project.
+
+Then, in aox.git on git.aox.org, I did an initial push to both repository mirrors:
+
+ $ git remote add github git@github.com:aox/aox.git
+ $ git remote add gitorious git@gitorious.org:aox/aox.git
+ $ git push github
+ ...
+ $ git push gitorious
+ ...
+
+To automatically push commits to both repositories in future, I created aox.git/hooks/post-receive with the following contents:
+
+ #!/bin/bash
+
+ nohup git push github &>/dev/null &
+ nohup git push gitorious &>/dev/null &
+____________
+
+It's interesting to mention that how ssh authenticate affects the solution as well:
+
+[quote]
+____________
+Update (2010-04-13): I put these two pushes into the background because I didn't want to wait for them to finish every time I pushed something to git.aox.org. But I was relying on ssh agent forwarding to authenticate with the remote servers, and that didn't work once my ssh client had disconnected. (I forgot to mention earlier that I have an entry in .ssh/config that sets ForwardAgent on for git.aox.org.)
+
+So I switched back to blocking pushes, but that was so slow that Arnt and I decided to generate new keys to push to these repositories, and put them on git.aox.org rather than rely on agent forwarding. So the pushes run in the background again now, and it works fine.
+____________
+
+
+== My solutions
+
+OK, now is my solutions. But before jumping into it, here is my situation again. 
+
+I don't have a third *nix server, so the following solutions are out:
+
+- setting up the hooks/post-receive to automatically push commits to both remote repositories (SourceForge and GitHub).
+- using the server-in-the-middle to do the passive mirroring.
+
+I.e., everything has to be done on the git client side. 
+
+=== Preparation, add mirror Git repository
+
+Add GitHub as the mirror repository:
+
+ git remote add --mirror github git@github.com:$GITHUB_USER/$GITHUB_REPO.git
+
+This will give a warning:
+
+  warning: --mirror is dangerous and deprecated; please
+	   use --mirror=fetch or --mirror=push instead
+
+It is fine with me, because it gives me the possibility to fetch from github to a local branch  (no matter how remote the possibility is).
+
+Check it:
+
+____________
+ $ cat .git/config
+ . . . 
+ [remote "origin"]
+	 url = ssh://...
+ [branch "master"]
+	 remote = origin
+	 merge = refs/heads/master
+ [remote "github"]
+	 url = git@github.com:myid/myrepo.git
+	 fetch = +refs/*:refs/*
+	 mirror = true
+____________
+
+If you had used the '"git remote add --mirror=push github ..."', then you won't see the '"fetch = "' line in the [remote "github"] entry.
+
+Next, check by git using:
+
+____________
+  $ git remote show github
+  * remote github
+    Fetch URL: git@github.com:myid/myrepo.git
+    Push  URL: git@github.com:myid/myrepo.git
+    HEAD branch: (unknown)
+    Remote branches:
+      master                     stale (use 'git remote prune' to remove)
+      refs/remotes/origin/master stale (use 'git remote prune' to remove)
+    Local refs will be mirrored by 'git push'
+
+  $ git push --dry-run -v github
+  Pushing to git@github.com:myid/myrepo.git
+  To git@github.com:myid/myrepo.git
+   * [new branch]      master -> master
+   * [new branch]      origin/master -> origin/master
+____________
+
+NB, always use the "--dry-run -v" flags to make sure you see, understand, and approve of all that is going to happen before it happens.
+
+=== Solutions 1, easiest, Git autopush
+
+==== Synopsis
+
+Set git to automatically push to remote repositories after each commit to the local repository.
+
+This requires that the workflow is just as simple as back in the bad old Cvs/Subversion days: Pull from the repo, commit some stuff, push it.
+
+==== Steps
+
+Create a file in .git/hooks/post-commit that contains the following:
+
+____________
+ #!/bin/sh
+ git push origin master
+ git push github
+____________
+
+Make sure to make that file executable:
+
+ chmod 755 .git/hooks/post-commit
+
+Ref:
+
+- http://stackoverflow.com/questions/7925850/how-to-automatically-push-after-committing-in-git[How to automatically push after committing in git]
+- http://chopmode.wordpress.com/2011/01/10/git-autopush/[Git autopush]
+
+=== Solutions 2, pushing to both remote repositories
+
+If you don't like automatically pushing after committing in git, and want to separate commit and push. Here is how --
+
+Use a git alias to define a single push command to use (the ! before the commands tells git that the command to follow is a shell command):
+
+Check first:
+
+____________
+ $ git config alias.push-all '! git push --dry-run -v & git push --dry-run -v github'
+ $ cat .git/config
+ . . . 
+ [alias]
+	 push-all = ! git push --dry-run -v & git push --dry-run -v github
+
+ $ git push-all
+ Pushing to ssh://...
+ Pushing to git@github.com:...
+____________
+
+Now do it:
+
+____________
+ git config alias.push-all '! git push; git push github'
+ cat .git/config
+ git push-all
+____________
+
+
+Simple, isn't it? Well here is something even more simpler:
+
+
+ git config alias.push-all '! git remote | xargs -L 1 git push'
+
+I.e., no matter how many remote repositories and whatever their names are, this one will always work.
+
+That's all. Hope you enjoyed it. 

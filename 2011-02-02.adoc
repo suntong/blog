@@ -1,0 +1,190 @@
+= Panning using xrandr
+
+:blogpost-categories: xrandr,panning,screen resolution,display size,display mode,framebuffer,video playing
+
+I had always been wondering, how can I reduce the size of my display to a
+smaller size, while keep the virtual size of my display to my current size,
+using a command.
+
+"Wait, why would you need that?" You may ask. Well, that's a secret trick
+that I've been playing for years -- 
+
+pass::[<!--more-->]
+
+When people playing videos, most people like to play in full screen mode,
+simply by switching to the full-screen playing mode from the video
+player. However, I never do that. Why? 
+
+Because I consider the method
+
+. a waste of my CPU power
+. a waste of the energy
+. yields less than optimal result, no matter how good the video player
+  can stretch the video. 
+
+About the point 3, with nowadays screen size, using my 1920x1080 screen as
+an example, playing a 640x360 video would mean stretching the video 3 times
+both horizontally and vertically. In other words, the video player has to
+magically come up with *9 pixels* from a *single pixel* of the video.  No
+matter what magic it is, we can tell that it either produces bad result,
+or use an outrageous amount of CPU power. Is there any better solution? Yes,
+using my trick. 
+
+May people know that our monitor can render more than one resolution, but
+few would use anything less than the highest resolution. Playing low
+resolution videos is the perfect time to use lower monitor resolutions --
+the video player play the video *as is*, without any stretching, while you
+are viewing (almost) full screen. I call the first method the software
+solution and mine as hardware solution. 
+
+Now the problem is how to do it? Wouldn't 
+
+ xrandr -s <width>x<height>
+
+do the trick? Well, yes it does. But the problem is that when I restore my
+display to its original size, all exiting window are shifted, jam-packing
+the upper left corner of the display, and even gnome menu icons are shifted
+two. That's awful.
+
+Quick answer:
+
+To reduce to a smaller display size,
+
+ xrandr --output VGA-1 --mode 640x480 --panning 1920x1080
+
+This will reduce the size of my display to a smaller size (640x480), while
+keep the virtual size of my display to my current size.  To view the other
+virtual display area, just panning with the mouse.
+
+To get a list of display size can be used, use 'xrandr'. Here is output of
+mine:
+
+ $ xrandr 
+ Screen 0: minimum 320 x 200, current 1920 x 1080, maximum 4096 x 4096
+ VGA-1 connected 1920x1080+0+0 (normal left inverted right x axis y axis) 477mm x 268mm panning 1920x1080+0+0
+    1920x1080      60.0*+
+    1280x1024      75.0     60.0  
+    1440x900       59.9  
+    1280x800       59.8  
+    1152x864       75.0  
+    1024x768       70.1     60.0  
+    800x600        60.3     56.2  
+    640x480        66.7     60.0  
+    720x400        70.1  
+
+It shows that the smaller sizes that I can use are, 1280x1024, 1440x900, 
+1280x800, ...., 800x600, 720x400 and 640x480.
+
+BTW, There is also an old X11 trick to change the screen resolution,
+Ctrl-Alt plus + or - from the number pad.  That's the trick that I've been
+playing for years. However, as you can tell, it'd be tiresome to do it now,
+because previously there's about 3 modes that I can switch in between, and
+now it is tiresome to cycle through all the display mode above.
+
+To restore,
+
+ xrandr -s 1920x1080
+
+For details, read on. 
+
+documented on:  2011-02-02
+
+[[Panning_using_xrandr_1]]
+== Panning using xrandr<<Panning_using_xrandr_1,_>>
+
+ Newsgroups: gmane.linux.debian.user
+ Date: Mon, 31 Jan 2011
+
+ > How to do panning using xrandr? 
+ > 
+ >  xrandr --panning <width>x<height>
+ > 
+ > won't work -- I need to put --output <output> before --panning.
+
+Sure.
+ 
+ > The problem is, I've searched everywhere, but every possible string I
+ > tried didn't work.
+
+Don't guess; ask your device: "xrandr -q" will tell you the name of 
+detected devices.
+
+Camaleón @gmail.com
+
+
+[[Panning_using_xrandr_2]]
+== Panning using xrandr<<Panning_using_xrandr_2,_>>
+
+ > Don't guess; ask your device: "xrandr -q" will tell you the name of
+
+Perfect, thanks a lot. 
+
+Now the question that I really want, 
+
+How can I reduce the size of my display to a smaller size, while keep the 
+virtual size of my display to my current size, using panning to view all 
+virtual display. I tried below, but it didn't work as I expected . . .
+
+[[Panning_using_xrandr_3]]
+== Panning using xrandr<<Panning_using_xrandr_3,_>>
+
+On Tue, 01 Feb 2011 20:38:50 +0000, Camaleón wrote:
+
+ >> all virtual display. I tried below, but it didn't work as I expected:
+ >> 
+ >>  xrandr -s 640x480 --output VGA-1 --panning 1920x1080
+ > 
+ > Hum... if I understood correctly the xrandr man page, you should run
+ > something like:
+ > 
+ > xrandr --output VGA-1 --mode 640x480 --fb 1920x1080 --panning 1920x1080
+
+OMG! That's perfect!
+
+Thanks a thousand!!! 
+
+Just FTA, the --fb 1920x1080 is not really necessary. The relation 
+between the "mode", "panning" and "framebuffer" can be illustrated below,
+
+	┌──┳━━━━━━━━━━━━━━┳─────┬ ─ ─ ─ ─ ─ ┐
+	│  ┃     CRTC     ┃     │
+	│  ┃              ┃     │           │
+	│  ┃             X┃→    │
+	│  ┃              ┃     │           │  framebuffer
+	│  ┗━━━━━━━━━━━━━━┛     │
+	│                       │           │
+	│panning area           │
+	└───────────────────────┴ ─ ─ ─ ─ ─ ┘
+
+If now  --fb is specified, it default to the same size as panning:
+
+	┌──┳━━━━━━━━━━━━━━┳────────────┐
+	│  ┃     CRTC     ┃            │
+	│  ┃              ┃            │
+	│  ┃              ┃→           │
+	│  ┃           X←→┃            │
+	│  ┃       border_right        │
+	│  ┗━━━━━━━━━━━━━━┛            │
+	│                              │
+	│panning area                  │
+	└──────────────────────────────┘
+
+Credit: 
+
+http://cgit.freedesktop.org/xorg/proto/randrproto/tree/randrproto.txt
+
+Thanks again
+
+xpt
+
+documented on:  2011-02-02
+
+
+******
+%% <<Panning_using_xrandr_1, Panning using xrandr>>
+
+%% <<Panning_using_xrandr_2, Panning using xrandr>>
+
+%% <<Panning_using_xrandr_3, Panning using xrandr>>
+
+******

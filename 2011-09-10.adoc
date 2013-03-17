@@ -1,0 +1,74 @@
+= corporate firewall from an end user prospective
+
+:blogpost-categories: ssh,sshd,firewall
+
+*Key Phrases*: ssh connection through firewall
+
+[[corporate_firewall_from_an_end_user_prospective]]
+<<corporate_firewall_from_an_end_user_prospective,corporate firewall from an end user prospective>>
+
+I want to use SSH from work to my site. The issue is that
+at work the firewall blocks the outbound ssh port connections.
+
+pass::[<!--more-->]
+
+ Newsgroups: gmane.linux.debian.user
+ Date: Fri, 9 Sep 2011
+
+ > The place that I work blocks standard outbound ssh (and ftp) port 
+ > connections.
+
+In an environment blocking most ports the https port 443 is almost
+always still allowed through.  It is needed for so many things on the
+web that most sites can't afford to block it.  Because of this if you
+have your own server that isn't running https then you can set up your
+own ssh daemon to listen on port 443.  Then you can use port 443 to
+get out to your host.  And from there you would have your own access.
+Many of us use that workaround.
+
+Bob Proulx @proulx.com
+
+[[corporate_firewall_from_an_end_user_prospective_1]]
+== <<corporate_firewall_from_an_end_user_prospective_1,corporate firewall from an end user prospective>>
+
+ > The place that I work blocks standard outbound ssh (and ftp) port 
+ > connections. I'm wondering, for a "standard" corporate firewall practice, 
+ > do they selectively block outbound ports, or do they selectively open 
+ > them. 
+
+The "best practice" is deny all ports and open only needed outgoing ports.
+For a standard company only 80, 8080 for http and 443 for https should
+be opened.
+
+ > From an end user prospective, is there any way I can know which outbound 
+ > port is not blocked that I can make use of? 
+
+if you wanna know which outgoing ports are open you will need a
+machine outside with some ports opened and make some try and error.
+
+Quick & Dirty:
+
+ external.machine: nc -l 3000
+ internal.machine: nc external.machine 3000
+
+And see if the socket is opened
+
+Anyway if you wanna have ssh and ftp connection you can try to
+tunnelling ssh over https and ftp over https. There are some good
+howtos on this subject on the internet.  I personally wrote one,
+written in "correct" Spanish:
+
+<mode spam=on>
+http://www.elsotanillo.net/2006/08/howto-como-saltarse-un-proxy-para-establecer-conexiones-tunelizadas-a-traves-de-el-2/
+</mode spam=on> :-)
+
+Juan Sierra Pons @elsotanillo.net
+
+documented on:  2011-09-10
+
+******
+%  <<corporate_firewall_from_an_end_user_prospective,corporate firewall from an end user prospective>>
+
+%%  <<corporate_firewall_from_an_end_user_prospective_1,corporate firewall from an end user prospective>>
+
+******

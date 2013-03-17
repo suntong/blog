@@ -1,0 +1,176 @@
+= Config NFS server and client
+
+:blogpost-categories: NFS
+
+How to configure NFS server and client.
+
+pass::[<!--more-->]
+
+Adpated from:
+
+ Subejct: Unable to config NFS
+ Newsgroups: comp.os.linux.networking
+ Date: 23 Sep 2002 00:16:24 -0500
+ From: Marvin
+
+1. Make sure you can run /usr/sbin/rpcinfo -p to see if portmapper is
+running.
+
+2. edit /etc/exports. Each share requires a similar entry. e.g, from my computer
+
+  /home/mpierce 10.0.0.0/24 (rw,no_root_squash)
+  # Read Only Permission for computers from 192.168.1.1 through 192.168.1.255
+ /files 192.168.1.0/24(ro,async)
+
+3. Run /usr/sbin/exports -a (Good ideal to check /var/lib/nfs/etab as
+   sometimes the permissions change from rw to ro in the file don't know
+   why). Or restart nfs server, expecially if you have remvoe a share.
+
+4. RH sys - run /etrc.d/init.d/nfs start 
+
+5. Rerun /usr/sbin/rpcinfo -p to
+verify that both nfs and mountd have been added to running services.
+
+6. Make a mount point on the client side. i.e., 
+
+  mount -t nfs server-name(or IP):/home/mpierce /mnt/nfs
+
+documented on:  2011-02-04
+
+[[NFS_Daemons]]
+== NFS Daemons<<NFS_Daemons,_>>
+
+[[Server_Daemons]]
+=== Server Daemons<<Server_Daemons,_>>
+
+https://wiki.archlinux.org/index.php/NFS#Daemons
+
+In Archlinux, you start the NFS server with the following commands:
+
+ # /etc/rc.d/rpcbind start (or: /etc/rc.d/portmap start)
+ # /etc/rc.d/nfs-common start (or: /etc/rc.d/nfslock start)
+ # /etc/rc.d/nfs-server start (or: /etc/rc.d/nfsd start)
+
+Please note that they *must be started in that order*. To start the server at
+boot time, add these daemons to the DAEMONS array in /etc/rc.conf.
+
+[[Client_Daemons]]
+=== Client Daemons<<Client_Daemons,_>>
+
+https://wiki.archlinux.org/index.php/NFS#Daemons_2
+
+Start the rpcbind and nfs-common daemons:
+
+ /etc/rc.d/rpcbind start (or: /etc/rc.d/portmap start)
+ /etc/rc.d/nfs-common start (or: /etc/rc.d/nfslock start)
+
+Please note that they must be started in that order or start only
+nfs-common, as rpcbind will be started as a dependency.
+
+Then just mount as normal:
+
+ mount server:/path/to/files /files
+
+NFS exports must be called by the full path on the server.
+
+[[Notes]]
+== Notes<<Notes,_>>
+
+Adpated from:
+
+[verse]
+Setting Up an NFS Server
+http://linux-redhat.net/Prentice.Hall.PTR-A.Practical.Guide.to.Red.Hat.Linux-Fedora.Core.and.Red.Hat.Enterprise.Linux.Third.Edition/0132280272/ch22lev1sec4.html
+
+(c) Copyright Prentice Hall
+
+/etc/exports: Holds a List of Exported Directory Hierarchies
+
+The /etc/exports file is the access control list for exported directory
+hierarchies that NFS clients can mount; it is the only file you need to edit
+to set up an NFS server. The exports file controls the following aspects:
+
+* Which clients can access files on the server
+* Which directory hierarchies on the server each client can access
+* How each client can access each directory hierarchy
+* How client usernames are mapped to server usernames
+* Various NFS parameters
+
+Each line in the exports file has the following format:
+
+ export-point client1(options) [client2(options) ... ]
+
+where export-point is the absolute pathname of the root directory of the
+directory hierarchy to be exported, client1-n is the name of one or more
+clients or is one or more IP addresses, separated by SPACEs, that are
+allowed to mount the export-point. The options, which are described in the
+next section, apply to the preceding client.
+
+Either you can use system-config-nfs (page 683) to make changes to exports
+or you can edit this file directly. The following simple exports file gives
+grape read and write access and gives speedy readonly access to the files in
+/home:
+
+ # cat /etc/exports
+ /home grape(rw,sync)
+ /home speedy(ro,sync)
+
+In each case, access is implicitly granted for all subdirectories. For
+historical reasons, exportfs complains when you do not specify either sync
+or async. You can use IP addresses and include more than one system on a
+line:
+
+ # cat /etc/exports
+ /home grape(rw,sync) speedy(ro,sync) 192.168.0.22(rw,sync)
+
+.Options for export
+[NOTE] 
+===============================
+Here is a list of what you want to do and what need to specify:
+
+General:
+
+- Allow connections from ports 1023 and higher: insecure
+- Allow insecure file locking: no_auth_nlm or insecure_locks
+- Disable subtree checking: no_subtree_check
+- Sync write operations on request: sync
+- Force sync of write operations immediately: no_wdelay
+- Hide filesystems beneath: nohide
+- Export only if mounted: mountpoint
+
+User Access:
+
+- Treat remote root user as local root: no_root_squash
+- Treat all client users as anonymous users: all_squash
+- Local user ID for anonymous users: anonuid
+- Local group ID for anonymous users: anongid
+===============================
+
+.Exporting symbolic links and device files
+[TIP] 
+===============================
+When you export a directory hierarchy that contains a symbolic link, make
+sure the object of the link is available on the client (remote) system. If
+the object of the link does not exist on a client system, you must export
+and mount it along with the exported link. Otherwise, the link will not
+point to the file it points to on the server.
+
+A device file refers to a Linux kernel interface. When you export a device
+file, you export that interface. If the client system does not have the same
+type of device, the exported device will not work. From a client, you can
+use mount's nodev option to prevent device files on mounted
+directory hierarchies from being used as devices.
+===============================
+
+documented on:  2011-02-04
+
+******
+%% <<NFS_Daemons, NFS Daemons>>
+
+%%% <<Server_Daemons, Server Daemons>>
+
+%%% <<Client_Daemons, Client Daemons>>
+
+%% <<Notes, Notes>>
+
+******

@@ -1,0 +1,148 @@
+= Git and SSH keys
+
+:blogpost-categories: git
+
+==== Synopsis
+
+How to tell Git which ssh key to use when connecting to Git repositories?
+
+==== Situation
+
+I have upload and verify my id_dsa key to GitHub, but still can't use GitHub because it insists that my id_rsa key is not registered. 
+
+Similar situations would be, 
+
+- I have several private key files (server1, server2). And both servers have git repos. The problem is that I can not use the same private key for both servers and have to tell Git which one to use.
+
+- Or, you need to authenticate Git/GitHub repositories with per-repository keys. 
+
+==== Solution Synopsis
+
+Use the ~/.ssh/config file to tell Git which key to use. 
+
+I.e., to tell GitHub to use my id_dsa key instead of the default id_rsa:
+
+____________
+ $ tail -2 ~/.ssh/config
+ Host github.com
+     IdentityFile ~/.ssh/id_dsa
+____________
+
+pass::[<!--more-->]
+
+==== Solution
+
+Steps:
+
+. Modify ~/.ssh/config as above
+. Test ssh into Git
+. Test Git repo access (with the configured key)
+
+Details:
+
+____________
+ $ tail -2 ~/.ssh/config
+ Host github.com
+     IdentityFile ~/.ssh/id_dsa
+
+  $ ssh git@github.com 
+  PTY allocation request failed on channel 0
+  Hi suntong001! You've successfully authenticated, but GitHub does not provide shell access.
+  Connection to github.com closed.
+
+  $ git remote show github
+  * remote github
+    Fetch URL: git@github.com:suntong001/lang.git
+    Push  URL: git@github.com:suntong001/lang.git
+    HEAD branch: master
+    Remote branches:
+      master                     tracked
+      refs/remotes/origin/master tracked
+    Local refs will be mirrored by 'git push'
+____________
+
+==== References
+
+.Using Multiple SSH Public Keys
+[quote, answered Apr 19 '11 by Chris Johnsen, http://superuser.com/questions/272465/using-multiple-ssh-public-keys]
+________________________
+
+==========================
+The problem now is that it appears that my default key is used everywhere and I can't find out how to specify a key to use in Git for individual repos.
+
+So my question is: How do I specify an SSH key to use on a repo-to-repo basis?
+==========================
+
+If you have an active ssh-agent that has your id_rsa key loaded, then the problem is likely that ssh is offering that key first. Unfuddle probably accepts it for authentication (e.g. in sshd) but rejects it for authorization to access the company repositories (e.g. in whatever internal software they use for authorization, possibly something akin to Gitolite). 
+
+The IdentitiesOnly .ssh/config configuration keyword can be used to limit the keys that ssh offers to the remote sshd to just those specified via IdentityFile keywords (i.e. it will refuse to use any additional keys that happen to be loaded into an active ssh-agent).
+
+Try these .ssh/config sections:
+
+ Host {personalaccount}.unfuddle.com
+      IdentityFile ~/.ssh/id_rsa
+      IdentitiesOnly yes
+ 
+ Host {companyaccount}.unfuddle.com
+      IdentityFile ~/.ssh/{companyaccount}_rsa
+      IdentitiesOnly yes
+
+Then, use Git URLs like these:
+
+  git@{personalaccount}.unfuddle.com:{personalaccount}/my-stuff.git
+  git@{companyaccount}.unfuddle.com:{companyaccount}/their-stuff.git
+
+If you want to take full advantage of the .ssh/config mechanism, you can supply your own custom hostname and change the default user name:
+
+ Host uf-mine
+      HostName {personalaccount}.unfuddle.com
+      User git
+      IdentityFile ~/.ssh/id_rsa
+      IdentitiesOnly yes
+ 
+ Host uf-comp
+      HostName {companyaccount}.unfuddle.com
+      User git
+      IdentityFile ~/.ssh/{companyaccount}_rsa
+      IdentitiesOnly yes
+
+Then, use Git URLs like these:
+
+  uf-mine:{personalaccount}/my-stuff.git
+  uf-comp:{companyaccount}/their-stuff.git
+________________________
+
+NB, the last example can also cover the case that 
+you need to authenticate Git/GitHub repositories with per-repository keys. 
+
+
+== References
+
+=== git-push with specific SSH key
+
+http://matharvard.ca/posts/2011/aug/11/git-push-with-specific-ssh-key/
+
+11 August 2011
+
+I wanted to use a specific key for this server.
+
+Connecting via SSH to the server with the key is as simple as adding '-i /path/to/key'. The problem arose when I needed to be able to push to a Git repository hosted on the server, and adding '-i' to 'git-push' doesn’t work.
+
+The solution was to add a Host directive to my '~/.ssh/config' file. Then, use that 'Host' to connect to when push’ing to the remote server.
+
+If it doesn’t exist, create the file '~/.ssh/config'. Add the following to it, editing where necessary.
+
+ Host RemoteServer
+  HostName remote-server.tld
+  User git
+  IdentityFile ~/.ssh/remoteserver_key
+
+This example config would be the equivalent of running a command like 'ssh git@remote-server.tld -i ~/.ssh/remoteserver_key'. You can even run 'ssh RemoteServer' to test the connection out.
+
+In your Git repository, add a new remote repository. Here I’ve called it 'origin', as the convention might have it.
+
+  git remote add origin RemoteServer:path/to/repository.git
+
+Instead of specifying a user '@' a domain, it uses the name of the 'Host' in the SSH config. The 'path/to/repository.git' is relative, on the average system, that will probably point to /home/git/path/to/repository.git.
+
+Try running a 'git push origin master' to see if it works!

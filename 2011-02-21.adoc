@@ -1,0 +1,244 @@
+= The Best Ad Blocking Method
+
+:blogpost-categories: ad blocking,dnsmasq,thttpd,web service,network virtual interface
+
+Most people uses the browser's adblock-plus extension to block ads. Fewer of them think over how it works internally. Here is an overview of Adblock Plus from a thousand mile high [1] -- whenever the browser needs to load something, the extension kicks in and do a thorough pattern matching of all known ad urls using regular expressions, then hectically replace all found ad urls with something else. This is done on every page, every load, and every component of the web page, using JavaScript. Thus it is by nature slow and CPU intensive, at least inefficient. There are other alternatives to this, e.g., privoxy, but they use the same concept. 
+
+Is there any smarter ways for ad blocking? 
+Yes, by using DNSmasq + Pixelserv:
+
+pass::[<!--more-->]
+
+- Leave the web pages intact, without any pattern matching and string substitution.
+- Block accessing to the ad sites from the DNS level. 
+- All ads will be replaced by a 1x1 pixel gif image
+  served locally by the Pixelserv server.
+
+Now let's get started. 
+
+[1] http://adblockplus.org/en/faq_internal
+
+[[Create_the_Pixelserv_ad_blocking_server]]
+== <<Create_the_Pixelserv_ad_blocking_server,Create the Pixelserv ad blocking server>>
+
+Pixelserv is a super minimal webserver, it's one and only purpose is serving a 1x1 pixel transparent gif file. We will redirect web requests, for adverts, to pixelserv, listening on LISTEN_ADDRESS.
+
+As root,
+
+ LISTEN_ADDRESS=192.168.2.101
+
+ cd /usr/local/bin/
+ curl http://proxytunnel.sourceforge.net/files/pixelserv.pl.txt | tee /tmp/pixelserv | sed "s/0\.0\.0\.0/$LISTEN_ADDRESS/" > pixelserv
+ chmod 755 pixelserv
+
+ $ diff -wU 1 /tmp/pixelserv pixelserv
+ --- /tmp/pixelserv      2011-02-07 10:49:13.000000000 -0500
+ +++ pixelserv   2011-02-07 10:49:13.000000000 -0500
+ @@ -7,3 +7,3 @@
+ -$sock = new IO::Socket::INET (  LocalHost => '0.0.0.0',
+ +$sock = new IO::Socket::INET (  LocalHost => '192.168.2.101',
+				  LocalPort => '80',
+
+We now need a simple init script for starting/stopping pixelserv, as /etc/init.d/pixelserv.
+
+.File /etc/init.d/pixelserv
+----------------------------------------------------------
+#! /bin/sh
+# /etc/init.d/pixelserv
+#
+ 
+# Carry out specific functions when asked to by the system
+case "$1" in
+   start)
+     echo "Starting pixelserv "
+     /usr/local/bin/pixelserv &
+     ;;
+   stop)
+     echo "Stopping script pixelserv"
+     killall pixelserv
+     ;;
+   *)
+     echo "Usage: /etc/init.d/pixelserv {start|stop}"
+     exit 1
+     ;;
+esac
+ 
+exit 0
+----------------------------------------------------------
+
+ chmod 755 /etc/init.d/pixelserv
+
+Test that the pixelserv init script work correctly by running
+'/etc/init.d/pixelserv start' and checking that the 'pixelserv'
+process is running. Now run '/etc/init.d/pixelserv stop' and check
+the the 'pixelserve' process is no longer running. If everything
+works correctly, add the pixelserv init script to startup/shutdown
+sequences...
+
+ update-rc.d pixelserv defaults
+
+[[Discussion_about_using_the_Pixelserv_server]]
+== <<Discussion_about_using_the_Pixelserv_server,Discussion about using the Pixelserv server>>
+
+[[Pixelserv_server_IP_address]]
+=== <<Pixelserv_server_IP_address,Pixelserv server IP address>>
+
+You may be wondering where the 192.168.2.101 comes from? -- It is
+the IP address of the actual Pixelserv running on. E.g., if
+your DNSmasq server does not have a web service running on it,
+then you can use the IP address of the DNSmasq server. Else, You
+may need to setup a dedicated server for Pixelserv. I.e., there
+has to be a real IP for it, not a faked one. Otherwise, you'll get
+the following when starting Pixelserv:
+
+ error : cannot bind : Cannot assign requested address exit
+
+What if I can't afford a dedicated server just for Pixelserv? --
+You can add a second IP address to your DNSmasq server using a
+virtual interface, then have Pixelserv service from that IP
+address. There are several ways to do it [2],
+
+[2] http://thread.gmane.org/gmane.linux.debian.user/400291/focus=400291
+
+The simplest way is to add the following line to you eth0 interface:
+
+        post-up ip addr add dev eth0 192.168.2.101/24
+        pre-down ip addr del dev eth0 192.168.2.101/24
+
+FYI, here is the full list of my eth0 interface static IP setup for 
+my DNSmasq server:
+
+.File /etc/network/interfaces:
+---------------------------------------------------
+# Use static IP instead of dhcp
+iface eth0 inet static
+        address 192.168.2.100
+        network 192.168.2.0
+        netmask 255.255.255.0
+        broadcast 192.168.2.255
+        gateway 192.168.2.1
+        # add a 2nd ip address
+        post-up ip addr add dev eth0 192.168.2.101/24
+        pre-down ip addr del dev eth0 192.168.2.101/24
+---------------------------------------------------
+
+[[Alternative_to_Pixelserv]]
+=== <<Alternative_to_Pixelserv,Alternative to Pixelserv>>
+
+Alternatively, if setting up the Pixelserv server seems too
+complicated to you. You can also use the (fast) local http server
+as an alternative solution -- E.g., you can use the virtual hosts
+option of the thttpd http server, and have a dedicated 404 error
+pages for the ad blocking, with logging sent to /dev/null. Ref,
+
+[verse]
+Customizing Your 404 with thttpd
+http://www.plinko.net/404/howto.asp?article=18
+
+[verse]
+Virtual Hosting With THTTPD
+http://www.nslu2-linux.org/wiki/HowTo/VirtualHostingWithTHTTPD
+
+The 1x1-pixel "ad blocked" transparent gif image can be obtained from
+http://upload.wikimedia.org/wikipedia/commons/c/c0/Blank.gif
+which is only 43 byte in size. 
+
+[[Why_separated_ad_block_server_]]
+=== <<Why_separated_ad_block_server_,Why a separated ad block server?>>
+
+Why not using the exiting local http server instead?
+
+Because otherwise its log will be filled with 404 errors
+for ads from all over the world. 
+
+[[Two_web_servers_on_single_machine]]
+== <<Two_web_servers_on_single_machine,Two web servers on a single machine>>
+
+By default webserver (Apache, thttpd etc) binds to all IPs on the
+machine. So we need to make sure that webserver is only bound to
+one IP address. For thttpd server:
+
+ echo "host=$LISTEN_ADDRESS" >  /etc/thttpd/thttpd.conf
+ /etc/init.d/thttpd restart
+
+If this is not done, you will get the following when starting the
+Pixelserv server:
+
+ error : cannot bind : Address already in use exit
+
+Now we can actually start the second web server pixelserv, on the
+same machine with a different IP address:
+
+ % /etc/init.d/pixelserv start
+ Starting pixelserv 
+
+Now, let's tell DNSmasq to use it.
+
+[[Ad_Blocking_with_DNSmasq]]
+== <<Ad_Blocking_with_DNSmasq,Ad Blocking with DNSmasq>>
+
+We need a couple of supporting utilities to complete DNSmasq's ad
+blocking duties.
+
+[[Get_Ad_Block_List]]
+=== <<Get_Ad_Block_List,Get Ad Block List>>
+
+First we need to create a simple script to get the ad block list:
+
+.File /usr/local/bin/get-ad-block-list.sh
+----------------------------------------------------------
+#!/bin/sh
+
+# Down the DNSmasq formatted ad block list
+curl "http://pgl.yoyo.org/adservers/serverlist.php?hostformat=dnsmasq&showintro=0&mimetype=plaintext" | sed "s/127\.0\.0\.1/$LISTEN_ADDRESS/" > /etc/dnsmasq.adblock.conf
+
+# Restart DNSmasq
+/etc/init.d/dnsmasq restart
+----------------------------------------------------------
+
+ chmod -v 755 /usr/local/bin/get-ad-block-list.sh
+
+[[Enable_adblocking_configuration]]
+=== <<Enable_adblocking_configuration,Enable adblocking configuration>>
+
+Add adblocking configuration to the last line of the /etc/dnsmasq.conf file:
+
+ echo "conf-file=/etc/dnsmasq.adblock.conf" >> /etc/dnsmasq.conf
+
+[[Testing_the_Ad_Blocking]]
+=== <<Testing_the_Ad_Blocking,Testing the Ad Blocking>>
+
+Before testing, go and visit some websites which have ads in their pages, e.g., youtube or yahoo, then
+
+ /usr/local/bin/get-ad-block-list.sh
+
+Now, visit those pages again in different tabs to see if the ads are removed :-)
+
+If AOK, setup a cron job to update the block list on a weekly basis:
+
+ ln -s /usr/local/bin/get-ad-block-list.sh /etc/cron.weekly/get-ad-block-list
+
+documented on:  2011-02-21
+
+******
+%%  <<Create_the_Pixelserv_ad_blocking_server,Create the Pixelserv ad blocking server>>
+
+%%  <<Discussion_about_using_the_Pixelserv_server,Discussion about using the Pixelserv server>>
+
+%%%  <<Pixelserv_server_IP_address,Pixelserv server IP address>>
+
+%%%  <<Alternative_to_Pixelserv,Alternative to Pixelserv>>
+
+%%%  <<Why_separated_ad_block_server_,Why a separated ad block server?>>
+
+%%  <<Two_web_servers_on_single_machine,Two web servers on a single machine>>
+
+%%  <<Ad_Blocking_with_DNSmasq,Ad Blocking with DNSmasq>>
+
+%%%  <<Get_Ad_Block_List,Get Ad Block List>>
+
+%%%  <<Enable_adblocking_configuration,Enable adblocking configuration>>
+
+%%%  <<Testing_the_Ad_Blocking,Testing the Ad Blocking>>
+
+******

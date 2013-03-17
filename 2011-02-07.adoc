@@ -1,0 +1,487 @@
+= Providing DHCP and DNS services with DNSMasq
+
+:blogpost-categories: DHCP,DNS,tftpd,ether net,ether card,ad blocking,dnsmasq,thttpd
+
+[[Synopsis]]
+== Synopsis<<Synopsis,_>>
+
+To use DNSmasq to provide DNS, DHCP, tftpd and ad blocking to my home network. 
+
+pass::[<!--more-->]
+
+ Disclaim: The following is shameless stolen from
+
+[verse]
+Setting Up DNSMasq
+http://wiki.flexion.org/SettingUpDNSMasq.html
+v1.15 2009/06/23, (c) Flexion.Org.
+
+And also compiled from,
+
+[verse]
+Pump, dhchp, dns and dnsmasq
+http://thread.gmane.org/gmane.linux.debian.user/400020
+
+[verse]
+Configuring Dnsmasq
+http://www.thekelleys.org.uk/dnsmasq/docs/setup.html
+
+[verse]
+OpenWrt Configuring DHCP and DNS on OpenWrt 
+http://martybugs.net/wireless/openwrt/dnsmasq.cgi
+
+Most importantly, many thanks to Tixy @yxit.co.uk, who gave all
+the answers to the dnsmasq questions here in the Q&A session.
+
+[[Introduction]]
+== Introduction<<Introduction,_>>
+
+The dnsmasq can be used as both dhchp and dns server. This is
+ideal for a home network. The benefits are, 
+
+- I no longer need to fiddle with my router web interface to give
+  fixed dhcp leases to my boxes -- I just have to maintain a local
+  dnsmasq conf file on the dnsmasq server.
+
+- It also provides tftpd service and ad blocking out of the box.
+
+[[Configure_DNSmasq]]
+== Configure DNSmasq<<Configure_DNSmasq,_>>
+
+It's better to keep the DNSmasq configuration outside the
+distributed .conf file -- it makes upgrades much less of a
+headache.
+
+Add a conf-file to the last line of the file /etc/dnsmasq.conf (as root):
+
+ % echo "conf-file=/etc/dnsmasq.intranet.conf" >> /etc/dnsmasq.conf
+
+ $ tail -4 /etc/dnsmasq.conf
+ # Include a another lot of configuration options.
+ #conf-file=/etc/dnsmasq.more.conf
+ #conf-dir=/etc/dnsmasq.d
+ conf-file=/etc/dnsmasq.intranet.conf
+
+[[Setup_dnsmasq_local_configuration]]
+=== Setup dnsmasq local configuration<<Setup_dnsmasq_local_configuration,_>>
+
+Ref:
+
+http://www.thekelleys.org.uk/dnsmasq/docs/dnsmasq.conf.example
+
+.Sample /etc/dnsmasq.intranet.conf
+-------------------------------------------------------------------
+# The following options make you a better netizen, since they
+# tell dnsmasq to filter out queries which the public DNS cannot
+# answer, and which load the servers (especially the root servers)
+# uneccessarily. If you have a dial-on-demand link they also stop
+# these requests from bringing up the link uneccessarily. 
+
+# Never forward plain names (without a dot or domain part)
+domain-needed
+# Never forward addresses in the non-routed address spaces.
+bogus-priv
+# filter what we send upstream
+filterwin2k
+  
+# By  default,  dnsmasq  will  send queries to any of the upstream
+# servers it knows about and tries to favour servers to are  known
+# to  be  up.  Uncommenting this forces dnsmasq to try each query
+# with  each  server  strictly  in  the  order  they   appear   in
+# /etc/resolv.conf
+strict-order
+
+# By default, when dnsmasq has more than one upstream server
+# available, it will send queries to just one server. Setting this
+# flag forces dnsmasq to send all queries to all available servers.
+# The reply from the server which answers first will be returned to
+# the original requestor.
+all-servers
+# blocks probe-machines attack
+stop-dns-rebind
+rebind-localhost-ok
+
+# If you want dnsmasq to detect attempts by Verisign to send queries
+# to unregistered .com and .net hosts to its sitefinder service and
+# have dnsmasq instead return the correct NXDOMAIN response, uncomment
+# this line. You can add similar lines to do the same for other
+# registries which have implemented wildcard A records.
+# http://www.thekelleys.org.uk/dnsmasq/docs/setup.html
+bogus-nxdomain=64.94.110.11
+
+# stops dnsmasq from getting DNS server addresses from /etc/resolv.conf
+no-resolv
+
+# == Provide DNS server addresses from this file instead
+# Google Public DNS (respond time: ~36 msec constantly)
+server=8.8.8.8
+server=8.8.4.4
+#OpenDNS Servers (respond time: ~160 msec initially, ~28 msec afterwards)
+server=208.67.222.222
+server=208.67.220.220
+
+# Set this (and domain: see below) if you want to have a domain
+# automatically added to simple names in a hosts-file.
+expand-hosts
+
+# enable dhcp
+dhcp-authoritative
+dhcp-option=6,0.0.0.0
+
+# use /etc/ethers for static hosts; same format as --dhcp-host
+# <hwaddr> [<hostname>] <ipaddr>
+read-ethers
+
+# dhcp lease (start,end,netmask,leasetime)
+# supply the range of addresses available for lease and optionally
+# a lease time. If you have more than one network, you will need to
+# repeat this for each network on which you want to supply DHCP
+# service.
+dhcp-range=192.168.0.1,192.168.0.100,48h
+
+# Set the domain for dnsmasq. this is optional, but if it is set, it
+# does the following things.
+# 1) Allows DHCP hosts to have fully qualified domain names, as long
+#     as the domain part matches this setting.
+# 2) Sets the "domain" DHCP option thereby potentially setting the
+#    domain of all systems configured by DHCP
+# 3) Provides the domain part for "expand-hosts"
+domain=example.org
+
+-------------------------------------------------------------------
+
+[[Configure_etc_resolv_conf]]
+=== Configure /etc/resolv.conf<<Configure_etc_resolv_conf,_>>
+
+We have configured DNSmasq to query the DNS servers in the order
+they appear in '/etc/resolv.conf'. I have done this because I use
+OpenDNS and failover to my ISPs DNS server in the unlikely event
+OpenDNS is not available.
+
+Edit /etc/resolv.conf as the following and save the file.
+
+-------------------------------------------------------------------
+domain example.org
+search example.org
+nameserver 127.0.0.1
+-------------------------------------------------------------------
+
+[[Configure_Static_DHCP_IP_Addresses]]
+=== Configure Static DHCP IP Addresses<<Configure_Static_DHCP_IP_Addresses,_>>
+
+Details for any static DHCP IP addresses are specified in
+/etc/ethers, in the following format:
+
+  # desktop
+  xx:xx:xx:xx:xx:xx name1 10.60.68.18
+  # laptop
+  xx:xx:xx:xx:xx:xx name2 10.60.68.19
+  # another desktop
+  xx:xx:xx:xx:xx:xx name3 10.60.68.20
+
+Note that you need to specify the actual MAC addresses in
+/etc/ethers, but I've replaced the MAC addresses with
+xx:xx:xx:xx:xx:xx in the example above for obvious reasons.
+
+Here is my file:
+
+ $ cat /etc/ethers
+ 00:16:3e:00:00:01 kvm1 192.168.0.1
+ 00:16:3e:00:00:02 kvm2 192.168.0.2
+
+Their lease time are defined by 'dhcp-range='. If you want to
+provide infinite lease time for some boxes, you can add another
+file,
+
+ echo "conf-file=/etc/dnsmasq.lease.conf" >> /etc/dnsmasq.conf
+
+with the following format:
+
+ dhcp-host=00:28:58:3A:EB:A1,192.168.2.20,computer2,infinite
+	   ^                 ^            ^         ^
+	   MAC               IP Address   hostname  lease time
+
+E.g., 
+
+ dhcp-host=00:16:3e:00:00:01,kvm1,192.168.0.1,8h
+ dhcp-host=00:16:3e:00:00:02,kvm2,192.168.0.2,8h
+
+I actually put the "dhcp-range=" and "domain=" part in that file,
+so that the /etc/dnsmasq.intranet.conf is site neutral -- no need
+to be altered across different LAN/home.
+
+[[Restart_DNSmasq]]
+=== Restart DNSmasq<<Restart_DNSmasq,_>>
+
+Sending SIGHUP to the dnsmasq process will cause it only to empty
+its cache and then re-load /etc/hosts and /etc/resolv.conf.
+
+To make the changed configuration take effect, dnsmasq must be
+restarted. Restart it using the following:
+
+ /etc/init.d/dnsmasq restart
+
+[[Optional_disable_dsl_router_dhcp_and_dns_services]]
+=== Optional, disable dsl router's dhcp and dns services<<Optional_disable_dsl_router_dhcp_and_dns_services,_>>
+
+My DSL router is currently acting as both dhchp and dns server for
+the moment, if I dedicate a box for dnsmasq as both dhcp and dns
+server, how would clients on my local network know which server to
+use?
+
+You'll have to disable DHCP on your router so only your new box responds
+to DHCP requests. For DNS, the DHCP response can give the IP address of
+the DNS for your clients to use. 
+
+Add a line to /etc/dnsmasq.conf which says
+"dhcp-option=6,0.0.0.0". (The 6 is the magic number for
+'nameserver', and 0.0.0.0 means dnsmasq will use its own ip
+address in the response to the client.)
+
+In that case, the dnsmasq server need to be configured to 
+be on a static IP. 
+
+in /etc/network/interfaces I have:
+
+  allow-hotplug eth0
+  iface eth0 inet static
+    address 192.168.2.2
+    netmask 255.255.255.0
+    gateway 192.168.2.1  # ip address of router
+
+And in /etc/dnsmasq.conf I tell DHCP clients the router address to use
+with:
+
+  dhcp-option=option:router,192.168.2.1
+
+I also added 'no-resolv' to dnsmasq.conf and set /etc/resolve.conf to
+
+  domain home
+  search home
+  nameserver 127.0.0.1
+
+this is because I manually set the upstream DNS servers' IP addresses in
+dnsmasq.conf. (I believe by default dnsmasq will use nameservers found
+in resolve.conf.)
+
+I also have my LANs domainname 'home' in dnsmasq.conf
+
+  domain=home
+
+I believe that's my entire setup configuration explained 
+
+Once the DHCP service is disabled on the router, remove its entry
+from /etc/resolve.conf. Then force dnsmasq process to empty
+its cache and then re-load /etc/hosts and /etc/resolv.conf.
+
+ pkill -SIGHUP dnsmasq
+
+Then test the static IP addresses previously assigned by router again.
+
+[[Test_Log]]
+=== Test Log<<Test_Log,_>>
+
+On DNSmasq server (maroon, as root): 
+
+ echo "    *** DEBUG `date --rfc-3339=seconds` DEBUG *** " >> /var/log/daemon.log
+
+ % /etc/init.d/dnsmasq restart
+ Restarting DNS forwarder and DHCP server: dnsmasq.
+
+ % tail /var/log/daemon.log
+     *** DEBUG 2011-02-07 10:16:43-05:00 DEBUG *** 
+ Feb  7 10:17:19 maroon dnsmasq[14457]: exiting on receipt of SIGTERM
+ Feb  7 10:17:21 maroon dnsmasq[14514]: started, version 2.55 cachesize 150
+ Feb  7 10:17:21 maroon dnsmasq[14514]: compile time options: IPv6 GNU-getopt DBus I18N DHCP TFTP
+ Feb  7 10:17:21 maroon dnsmasq-dhcp[14514]: DHCP, IP range 192.168.0.1 -- 192.168.0.100, lease time 2d
+ Feb  7 10:17:21 maroon dnsmasq[14514]: using nameserver 208.67.220.220#53
+ Feb  7 10:17:21 maroon dnsmasq[14514]: using nameserver 208.67.222.222#53
+ Feb  7 10:17:21 maroon dnsmasq[14514]: using nameserver 8.8.4.4#53
+ Feb  7 10:17:21 maroon dnsmasq[14514]: using nameserver 8.8.8.8#53
+ Feb  7 10:17:21 maroon dnsmasq[14514]: read /etc/hosts - 8 addresses
+
+Dnsmasq doesn't return results for machines until after its served
+out an address. So we need to make a DHCP/DNS request. The best
+method is using virtual machines like kvm etc, with a Live
+CD. FYI, here is how I start my kvm virtual machines using Grml
+Live CD:
+
+ qemu-system-x86_64 -smp 2 -m 1024 -usbdevice tablet -net nic,macaddr=00:16:3e:0:00:01,model=virtio -net tap,ifname=tap0,script=no,downscript=no -k en-us -vga std -drive media=disk,if=virtio,cache=writeback,file=hda -drive media=cdrom,file=grml64-medium_2010.12.iso -boot d
+
+Ref:
+
+http://www.linux-kvm.org/page/Simple_shell_script_to_manage_your_virtual_machine_with_bridged_networking
+
+ $ tail /var/log/daemon.log
+ Feb  7 10:17:21 maroon dnsmasq[14514]: read /etc/hosts - 8 addresses
+ Feb  7 10:20:51 maroon dnsmasq-dhcp[14514]: DHCPDISCOVER(eth0) 00:16:3e:00:00:01 
+ Feb  7 10:20:51 maroon dnsmasq-dhcp[14514]: DHCPOFFER(eth0) 192.168.0.1 00:16:3e:00:00:01 
+ Feb  7 10:20:51 maroon dnsmasq-dhcp[14514]: DHCPREQUEST(eth0) 192.168.0.101 00:16:3e:00:00:01 
+ Feb  7 10:20:51 maroon dnsmasq-dhcp[14514]: DHCPNAK(eth0) 192.168.0.101 00:16:3e:00:00:01 wrong server-ID
+     *** DEBUG 2011-02-07 10:22:21-05:00 DEBUG *** 
+ Feb  7 10:23:25 maroon dnsmasq-dhcp[14514]: DHCPDISCOVER(eth0) 00:16:3e:00:00:01 
+ Feb  7 10:23:25 maroon dnsmasq-dhcp[14514]: DHCPOFFER(eth0) 192.168.0.1 00:16:3e:00:00:01 
+ Feb  7 10:23:25 maroon dnsmasq-dhcp[14514]: DHCPREQUEST(eth0) 192.168.0.1 00:16:3e:00:00:01 
+ Feb  7 10:23:25 maroon dnsmasq-dhcp[14514]: DHCPACK(eth0) 192.168.0.1 00:16:3e:00:00:01 kvm1
+
+Before the debug time stamp is the situation that the DHCP service
+is not disabled on the router, and after is that it is disabled.
+
+From other boxes: 
+
+.................................
+ $ dig -x 192.168.0.1 @maroon | grep -A5 QUESTION
+ ;; QUESTION SECTION:
+ ;1.0.168.192.in-addr.arpa.      IN      PTR
+ 
+ ;; ANSWER SECTION:
+ 1.0.168.192.in-addr.arpa. 0     IN      PTR     kvm1.example.org.
+ 
+ $ dig kvm1 @maroon | grep -A5 QUESTION
+ ;; QUESTION SECTION:
+ ;kvm1.                          IN      A
+ 
+ ;; ANSWER SECTION:
+ kvm1.                   0       IN      A       192.168.0.1
+.................................
+
+-- So far so good. 
+
+.................................
+ $ dig kvm2 @maroon | grep -A5 QUESTION
+ ;; QUESTION SECTION:
+ ;kvm2.                          IN      A
+ 
+ ;; Query time: 0 msec
+ ;; SERVER: 192.168.0.100#53(192.168.0.100)
+ ;; WHEN: Mon Feb  7 10:36:26 2011
+.................................
+
+-- No found, see!
+
+[[Configure_the_dnsmasq_server_using_the_static_IP]]
+=== Configure the dnsmasq server using the static IP<<Configure_the_dnsmasq_server_using_the_static_IP,_>>
+
+I use dynamic IP previously, so I need to do this, and choose
+to do this only now, when everything is testing fine. 
+
+Detail steps omitted. 
+
+Now you dnsmasq DHCP and DNS server is really read to serve.
+
+[[Ad_Blocking_optional]]
+== Ad Blocking, optional<<Ad_Blocking_optional,_>>
+
+Content is too complicated to be included here. 
+Move it to
+http://sfxpt.wordpress.com/2011/02/21/the-best-ad-blocking-method/
+
+[[Discussions]]
+== Discussions<<Discussions,_>>
+
+Answering to what-if questions for alternative solutions. 
+
+[[Let_ether_card_get_the_setting_automatically_]]
+=== Let ether card get the setting automatically?<<Let_ether_card_get_the_setting_automatically_,_>>
+
+Q1. Since you have to maintain domain names in both
+/etc/resolv.conf and /etc/dnsmasq.conf, ie, for both ether card
+and dnsmasq server, I'm wondering if I can use a dhcp client on
+the very box to obtain the fixed IP address configured in dnsmasq,
+used as both dhcp and dns server, so that I only need to configure
+dnsmasq, and let ether card get the setting automatically?
+
+It won't work, there are at least two generations of chicken-and-egg
+problem in there ;-)
+
+1. For DHCP client on eth0 to work you need the DHCP server listening on
+eth0, which it can't do until the interface is brought up, which
+requires DHCP client to complete.
+
+2. DNS server needs a network interface and ip address to talk to
+upstream which requires the interface to be brought up. This requires
+DHCP to work, which is the same daemon (dnsmasq) as the DNS server.
+
+[[why_my_static_IP_configuration_doesn_work]]
+=== why my static IP configuration doesn't work<<why_my_static_IP_configuration_doesn_work,_>>
+
+Q2. why it doesn't work for me?
+
+ > Hmm, why it doesn't work for me. Here is my setting:
+ > 
+ > dhcp-host=00:16:3e:00:00:01,kvm1,192.168.0.1,8h
+ > dhcp-host=00:16:3e:00:00:02,kvm2,192.168.0.2,8h
+ > 
+ > On DNSmasq server (maroon): 
+ > 
+ > % /etc/init.d/dnsmasq restart
+ > Restarting DNS forwarder and DHCP server: dnsmasq.
+ > 
+ > >From other boxes,
+ > 
+ > $ dig kvm1 @maroon
+ > [...]
+ > 
+ > Nothing found. Why? 
+
+Had kvm1 got it's ip address by DHCP at this point? Dnsmasq doesn't
+return results for machines until after its served out an address. (It's
+a bit of a pain if you reboot the dnsmasq server because it doesn't
+resolve clients until after they've rebooted. I suppose that's the
+advantage of using the 'hosts' file on the dnsmasq server.)
+
+I realise I also have 'expand-hosts' in my dnsmasq.conf (don't think
+that is relevant to the current problem though, I believe it lets it
+resolve 'kvm1.your-domain' as well as plain 'kvm1'.
+ 
+BTW, DHCP traffic shows up in /var/log/daemon.log, which is useful for
+seeing what goes on.
+
+[[Why_separated_ad_block_server_]]
+=== Why a separated ad block server?<<Why_separated_ad_block_server_,_>>
+
+Why not using the exiting local http server instead?
+
+Because otherwise its log will be filled with 404 errors
+from all over the world. 
+
+documented on:  2011-02-06
+
+******
+%% <<Synopsis, Synopsis>>
+
+%% <<Introduction, Introduction>>
+
+%% <<Configure_DNSmasq, Configure DNSmasq>>
+
+%%% <<Setup_dnsmasq_local_configuration, Setup dnsmasq local configuration>>
+
+%%% <<Configure_etc_resolv_conf, Configure /etc/resolv.conf>>
+
+%%% <<Configure_Static_DHCP_IP_Addresses, Configure Static DHCP IP Addresses>>
+
+%%% <<Restart_DNSmasq, Restart DNSmasq>>
+
+%%% <<Optional_disable_dsl_router_dhcp_and_dns_services, Optional, disable dsl router's dhcp and dns services>>
+
+%%% <<Test_Log, Test Log>>
+
+%%% <<Configure_the_dnsmasq_server_using_the_static_IP, Configure the dnsmasq server using the static IP>>
+
+%% <<Ad_Blocking_optional, Ad Blocking, optional>>
+
+%%% <<Enable_adblocking_configuration, Enable adblocking configuration>>
+
+%%% <<Get_Ad_Block_List, Get Ad Block List>>
+
+%%% <<Create_an_ad_block_server, Create an ad block server>>
+
+%% <<Discussions, Discussions>>
+
+%%% <<Let_ether_card_get_the_setting_automatically_, Let ether card get the setting automatically?>>
+
+%%% <<why_my_static_IP_configuration_doesn_work, why my static IP configuration doesn't work>>
+
+%%% <<Why_separated_ad_block_server_, Why a separated ad block server?>>
+
+******

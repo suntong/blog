@@ -1,0 +1,66 @@
+ccopy_reg
+_reconstructor
+p0
+(c__main__
+Cache
+p1
+c__builtin__
+object
+p2
+Ntp3
+Rp4
+(dp5
+S'status'
+p6
+S'published'
+p7
+sS'title'
+p8
+S'Panning using xrandr'
+p9
+sS'url'
+p10
+S'http://sfxpt.wordpress.com/2011/02/02/panning-using-xrandr/'
+p11
+sS'checksum'
+p12
+S'b01b8e308437b8d6e92f9556f70b9ec6'
+p13
+sS'created_at'
+p14
+I1296612327
+sS'doctype'
+p15
+S'article'
+p16
+sS'updated_at'
+p17
+I1296666902
+sS'post_type'
+p18
+S'post'
+p19
+sS'media'
+p20
+(dp21
+sS'id'
+p22
+I37
+sS'categories'
+p23
+(lp24
+S'xrandr'
+p25
+aS'panning'
+p26
+aS'screen resolution'
+p27
+aS'display size'
+p28
+aS'display mode'
+p29
+aS'framebuffer'
+p30
+aS'video playing'
+p31
+asb.

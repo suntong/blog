@@ -1,0 +1,174 @@
+= Troubleshooting sshd server configuration
+
+:blogpost-categories: ssh,sshd,troubleshooting
+
+*Key Phrases*: ssh connection troubleshooting
+
+It is common to get 
+
+  Permission denied (publickey).
+
+error while trying to ssh into the sshd server, e.g. using
+
+ ssh -C -A -X sshd_server
+
+To troubleshoot the sshd server configuration, you can ssh into it using a secondary debug ssh session:
+
+pass::[<!--more-->]
+
+. start "/usr/sbin/sshd -d -D -p 222" on the server
+. start "ssh -v -C -A -X -p 222" on the client
+
+Normally the log on the server side will reveal what went wrong. E.g., 
+
+ Authentication refused: bad ownership or modes for file root/.ssh/authorized_keys
+
+To fix all file/directory permission problems, normally the following will do:
+
+ chmod 755 ~
+ chmod 700 ~/.ssh
+ chmod 600 ~/.ssh/authorized_keys
+
+documented on:  2011-03-05
+
+[[Troubleshooting_sshd_server_configuration_1]]
+== <<Troubleshooting_sshd_server_configuration_1,Troubleshooting sshd server configuration>>
+
+ Newsgroups: gmane.linux.debian.user
+ Date: Fri, 28 Mar 2008 10:59:52 +1100
+ Subject: open-ssh keypair Auth
+
+to debug ssh problems,  you can start "ssh -v -p 222" on the client
+after a "/usr/sbin/sshd -d -D -p 222" on the server. [I.e., don't stop your 
+normal sshd service, especially when you are debugging remotely. 
+Start another debug sshd instance instead. -- xpt]
+
+Also note that besides file permissions on the server, also directory
+permissions (at least for ~/.ssh and ~/ but also the x permission on all
+their parents) are important. And also permissions on the client.
+
+NN_il_Confusionario @tiscalinet.it
+
+[[Troubleshooting_sshd_server_configuration_2]]
+== <<Troubleshooting_sshd_server_configuration_2,Troubleshooting sshd server configuration>>
+
+I have the same situation, keypairs work fine outbound but not inbound.
+Using the trick about, I found that it is the file/directory permissions 
+problem. Here is the log:
+
+On the client side, when it does not work:
+
+---------------------------------------------
+$ ssh -v -v -v -p 222 localhost
+OpenSSH_4.3p2 Debian-9, OpenSSL 0.9.8e 23 Feb 2007
+debug1: Reading configuration data /etc/ssh/ssh_config
+ [...]
+debug3: authmethod_is_enabled publickey
+debug1: Next authentication method: publickey
+debug1: Offering public key: /home/tong/.ssh/id_rsa
+debug3: send_pubkey_test
+debug2: we sent a publickey packet, wait for reply
+debug1: Authentications that can continue: publickey,password,keyboard-interactive
+debug1: Offering public key: /home/tong/.ssh/id_dsa
+ [...]
+Password: 
+---------------------------------------------
+
+I.e., my id_rsa publickey was not accepted and moved onto id_dsa, then 
+fall through till password prompt.
+
+On the server side, when it does not work:
+
+---------------------------------------------
+% sshd -D -d -p 222
+sshd re-exec requires execution with an absolute path
+
+% /usr/sbin/sshd -D -d -p 222
+debug1: sshd version OpenSSH_4.3p2 Debian-9
+ [...]
+debug1: userauth-request for user tong service ssh-connection method publickey
+ [...]
+Failed none for tong from 127.0.0.1 port 59274 ssh2
+debug1: temporarily_use_uid: 9999/1001 (e=0/0)
+debug1: trying public key file /home/tong/.ssh/authorized_keys
+Authentication refused: bad ownership or modes for directory /export/home/tong
+debug1: restore_uid: 0/0
+debug1: temporarily_use_uid: 9999/1001 (e=0/0)
+debug1: trying public key file /home/tong/.ssh/authorized_keys2
+---------------------------------------------
+
+There it says, "Authentication refused: bad ownership or modes"
+for my home directory. To fix it:
+
+ chmod 755 ~
+ chmod 700 ~/.ssh
+ chmod 600 ~/.ssh/authorized_keys
+
+Here is the correct log. On the server side, 
+
+---------------------------------------------
+% /usr/sbin/sshd -D -d -p 222
+debug1: sshd version OpenSSH_4.3p2 Debian-9
+ [...]
+debug1: userauth-request for user tong service ssh-connection method publickey
+ [...]
+Failed none for tong from 127.0.0.1 port 47010 ssh2
+debug1: temporarily_use_uid: 9999/1001 (e=0/0)
+debug1: trying public key file /home/tong/.ssh/authorized_keys
+debug1: matching key found: file /home/tong/.ssh/authorized_keys, line 1
+Found matching RSA key: ...
+debug1: restore_uid: 0/0
+Postponed publickey for tong from 127.0.0.1 port 47010 ssh2
+debug1: userauth-request for user tong service ssh-connection method publickey
+debug1: attempt 2 failures 1
+debug1: temporarily_use_uid: 9999/1001 (e=0/0)
+debug1: trying public key file /home/tong/.ssh/authorized_keys
+debug1: matching key found: file /home/tong/.ssh/authorized_keys, line 1
+Found matching RSA key: ...
+debug1: restore_uid: 0/0
+debug1: ssh_rsa_verify: signature correct
+debug1: do_pam_account: called
+Accepted publickey for tong from 127.0.0.1 port 47010 ssh2
+debug1: monitor_child_preauth: tong has been authenticated by privileged process
+debug1: PAM: reinitializing credentials
+debug1: permanently_set_uid: 9999/1001
+debug1: Entering interactive session for SSH2.
+---------------------------------------------
+
+On the client side, 
+
+---------------------------------------------
+debug3: authmethod_is_enabled publickey
+debug1: Next authentication method: publickey
+debug1: Offering public key: /home/tong/.ssh/id_rsa
+debug3: send_pubkey_test
+debug2: we sent a publickey packet, wait for reply
+debug1: Server accepts key: pkalg ssh-rsa blen 149
+debug2: input_userauth_pk_ok: fp ...
+debug3: sign_and_send_pubkey
+debug1: Authentication succeeded (publickey).
+debug1: channel 0: new [client-session]
+debug3: ssh_session2_open: channel_new: 0
+debug2: channel 0: send open
+debug1: Entering interactive session.
+---------------------------------------------
+
+Now I am able to set 
+
+ PasswordAuthentication no
+
+to /etc/ssh/ssh_config .
+
+// f-configure set '^PasswordAuthentication +' no /etc/ssh/sshd_config
+
+ % /etc/init.d/ssh restart
+ Restarting OpenBSD Secure Shell server: sshd.
+
+documented on:  2008-03-29
+
+******
+%%  <<Troubleshooting_sshd_server_configuration_1,Troubleshooting sshd server configuration>>
+
+%%  <<Troubleshooting_sshd_server_configuration_2,Troubleshooting sshd server configuration>>
+
+******
