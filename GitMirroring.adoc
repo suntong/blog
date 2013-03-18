@@ -80,9 +80,11 @@ Here is how to modify a config file for git that will allow you to push to multi
 
 In the .git/config file you can add multiple urls to a defined remote:
 
+------------
  [remote "all"]
      url=ssh://user@server/repos/g0.git
      url=ssh://user@server/repos/g1.git
+------------
 
 If you git push all now you push to all the remote urls.
 
@@ -106,9 +108,8 @@ Then he went on giving his 120+lines of custom python code, but I'll skip includ
 
 As you can see now, the git mirroring is quite a common request (e.g., http://stackoverflow.com/questions/11370239/creating-an-official-github-mirror[Creating an official github mirror]), I can't believe there isn't a ready made solution to it. Hmm... found it, how about this:
 
-*Gitslave*
-
-http://gitslave.sourceforge.net/
+*Gitslave* +
+http://gitslave.sourceforge.net/ 
 
 [quote, http://codingkilledthecat.wordpress.com/2012/04/28/why-your-company-shouldnt-use-git-submodules/]
 ____________
@@ -124,10 +125,8 @@ This seems very promising at first. However, having went through its whole tutor
 
 Found this neat and precise one:
 
-*Mirror a GIT Repository for Backup*
-
-http://openhood.com/git/2010/04/09/mirror-a-git-repository-for-backup/
-
+*Mirror a GIT Repository for Backup* +
+http://openhood.com/git/2010/04/09/mirror-a-git-repository-for-backup/ +
 "A quick way to easily maintain a complete mirror of a git repository. This is especially useful for backup."
 
 
@@ -191,8 +190,7 @@ git push github
 <<simplicity,Previously>>, I gave up git hooks, and sought for easier solutions on the client-side. That didn't went on well, so I went on looking for the server-side solutions, and found this:
 
 
-*Mirroring a git repository*
-
+*Mirroring a git repository* +
 http://toroid.org/ams/etc/git-repository-mirrors
 
 [quote, Abhijit Menon-Sen]
@@ -207,7 +205,7 @@ ____________
 It is the closest to what I've been looking for so I'll include its main points/steps below:
 
 [quote, Abhijit Menon-Sen, http://toroid.org/ams/etc/git-repository-mirrors]
-____________
+________________________
 On Github: I created an "aox" account, created an "aox" repository, and added arnt and myself as collaborators.
 
 On Gitorious: I created an account for myself, created a project named "aox", created a new "aox.git" repository, and added arnt and myself as collaborators on the project.
@@ -223,11 +221,14 @@ Then, in aox.git on git.aox.org, I did an initial push to both repository mirror
 
 To automatically push commits to both repositories in future, I created aox.git/hooks/post-receive with the following contents:
 
+------------
  #!/bin/bash
 
  nohup git push github &>/dev/null &
  nohup git push gitorious &>/dev/null &
-____________
+------------
+
+________________________
 
 It's interesting to mention that how ssh authenticate affects the solution as well:
 
@@ -265,7 +266,7 @@ It is fine with me, because it gives me the possibility to fetch from github to 
 
 Check it:
 
-____________
+------------
  $ cat .git/config
  . . . 
  [remote "origin"]
@@ -277,13 +278,13 @@ ____________
 	 url = git@github.com:myid/myrepo.git
 	 fetch = +refs/*:refs/*
 	 mirror = true
-____________
+------------
 
 If you had used the '"git remote add --mirror=push github ..."', then you won't see the '"fetch = "' line in the [remote "github"] entry.
 
 Next, check by git using:
 
-____________
+------------
   $ git remote show github
   * remote github
     Fetch URL: git@github.com:myid/myrepo.git
@@ -299,7 +300,7 @@ ____________
   To git@github.com:myid/myrepo.git
    * [new branch]      master -> master
    * [new branch]      origin/master -> origin/master
-____________
+------------
 
 NB, always use the "--dry-run -v" flags to make sure you see, understand, and approve of all that is going to happen before it happens.
 
@@ -315,11 +316,9 @@ This requires that the workflow is just as simple as back in the bad old Cvs/Sub
 
 Create a file in .git/hooks/post-commit that contains the following:
 
-____________
  #!/bin/sh
  git push origin master
  git push github
-____________
 
 Make sure to make that file executable:
 
@@ -338,7 +337,7 @@ Use a git alias to define a single push command to use (the ! before the command
 
 Check first:
 
-____________
+------------
  $ git config alias.push-all '! git push --dry-run -v & git push --dry-run -v github'
  $ cat .git/config
  . . . 
@@ -348,21 +347,17 @@ ____________
  $ git push-all
  Pushing to ssh://...
  Pushing to git@github.com:...
-____________
+------------
 
 Now do it:
 
-____________
  git config alias.push-all '! git push; git push github'
  cat .git/config
  git push-all
-____________
-
 
 Simple, isn't it? Well here is something even more simpler:
 
-
- git config alias.push-all '! git remote | xargs -L 1 git push'
+ git config alias.push-all '! git remote | tac | xargs -L 1 git push'
 
 I.e., no matter how many remote repositories and whatever their names are, this one will always work.
 
