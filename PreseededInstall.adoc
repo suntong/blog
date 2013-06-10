@@ -1,0 +1,528 @@
+= Get the Debian/Ubuntu ready and customized the way you like in 10 minutes
+
+:blogpost-categories: Debian,Ubuntu,preseed,kickstart,installation,customization
+
+If you are still answering the same-old questions again and again during Debian/Ubuntu system installation, or your are upgrading your system but bumped into a situation, which might take more than 10 minutes to resolve but you still hang on to it, I admire your determination but you might have missed some wonderful things that make all such experiences dramatically different, and smooth -- the preseeded Debian/Ubuntu installation. Within 10 minutes, you can have the system ready, in any way you like it to be, without much/any of your intervention, with the aid of the preseeded Debian/Ubuntu installation. 
+
+pass::[<!--more-->]
+
+The following are compiled from the enclosed <<references,references>>, so that it is the only place I need to refer back to refresh myself regarding the preseeded Debian/Ubuntu installation.
+
+== The Problem and Goal
+
+Dustin Kirkland has http://blog.dustinkirkland.com/2011/03/ubuntu-server-quick-install-no.html[written an inspiration blog] about the preseeded Ubuntu Server installation. His blog explains the problem quite well:
+
+[quote,Dustin Kirkland]
+____________________________
+I install the Ubuntu Server *a lot*... Most of my daily installations are throwaway KVM virtual machines on my development laptop.  I have answered the same questions in Ubuntu's installer thousands of times...  "Yes, I still speak English, my keyboard is US, please do remove all partitions and yes that partition layout is just fine!"
+
+Of course these questions are preseedable in Ubuntu.  You just need to craft that magic preseed file, but that's necessarily trivial.  In this post, I am sharing just such a layout with you at http://bit.ly/uinstall.
+____________________________
+
+Check it out, it's a good reading, and take a look at the preseed file as well. However, it's been over two years since the blog was written, and things have changed, especially, the following is no longer true any more:
+
+[quote]
+____________________________
+Append the following options to your kernel command line (ESC, then F6 at the boot screen):
+
+  priority=critical locale=en_US url=http://bit.ly/uinstall
+
+And your installation should proceed from start to finish, with no questions asked!
+____________________________
+
+This post will explain what is the minimum that you need to type on that kernel boot command line, and what can be possibly pre-configured in the preseed file.
+
+== How it works
+
+What you need:
+
+- netboot ISO, from Debian/Ubuntu
+  * For Ubuntu, it can be from http://us.mirror.archive.ubuntu.com/ubuntu/dists/<codename>/main/installer-<arch>/current/images/netboot/mini.iso
+  * For Debian, it can be from http://cdimage.debian.org/cdimage/daily-builds/daily/arch-latest/<arch>/iso-cd/debian-testing-<arch>-netinst.iso, or http://ftp.us.debian.org/debian/dists/sid/main/installer-<arch>/current/images/netboot/mini.iso
+- The preseed file, as shown above or explained later.
+- A VM. The preseed file works best with a VM where you can accept the default partition settings.
+ * You do have the ability to customize the preseed file for customized installation location, but that require a lot of extra work and it is dangerous.
+ * If you really want to install to your real HD, considering doing the following instead:
+ . Use the preseed file to install into a VM.
+ . Tar up the whole VM fs, and then untar into the partition on your HD.
+ . Install a boot loader to the partition.
+ . That's it. That's all steps that you need. 
+- A web server. 
+ * If you are doing installation within your home network or within your organization, any web or ftp server that can server the preseed file would be fine. This would be the most common case. 
+ * Else, there are load of free web hostings out there, and consider using the url shortening services, like http://goo.gl/ to shorten the preseed file url.
+
+How it works: when the mini.iso netboot starts, type in the magic words, and the 
+Debian/Ubuntu installer will follow your instructions from the preseed file, instead of going into the the same-old routine to ask you the same-old questions again. 
+
+== The preseed file
+
+Here is a sample preseed file, that contains all useful configuration preseed settings that I could find from the Internet, divided up into sections, tweaked to the way I preferred my installation would be, and well commented for you to customize it yourself.
+
+A few important notes about the  preseed configuration:
+
+- Keyboards and language are US/English
+- Networking is default DHCP
+- Target disk is completely repartitioned/reformatted
+- Default username/password is user/user
+- Additionally install a couple of tools, which I considered essential for the nearly-bare-bone system. You can surely install more *after* the system boots up. 
+ * Of all the additionally installed tools, the localepurge packages is preseeded to avoid being prompted for answers during the installation. 
+ * The tmpreaper is another annoying packages that will halt the installation waiting for your response. So I deliberately included it and preseeded it to silence the questions. 
+- The top of the file lists all the urls that I found from the Internet on preseed file samples.
+- This preseed file collects all preseed setting from them all and rearrange them into logical sections. 
+- I use GRUB Legacy instead of default GRUB 2 for booting, and it is installed to PBR instead of MBR (I don't wan't to put my linux boot loader in MBR -- too dangerous there. Otherwise, so many of my bootable OSs will be fighting to take hold of it. Some monopoly will even just use it without asking first).
+- The APT is configured to not install recommended packages by default, and
+- The debconf's priority is forced to +critical+ to minimize questions asked during installation.
+- Places that need your further customization are marked with +# $$*!*$$+.
+- Alternative settings are available from comments above.
+
+[source,shell]
+------------------------
+#### preseed: Preconfiguration file for ubuntu
+# http://d-i.alioth.debian.org/manual/example-preseed.txt
+# http://www.debian.org/releases/testing/example-preseed.txt
+# https://help.ubuntu.com/12.04/installation-guide/example-preseed.txt
+# http://lackof.org/taggart/hacking/d-i_preseed/preseed.cfg
+
+# http://wiki.debian.org/DebianInstaller/Preseed
+# https://help.ubuntu.com/12.04/installation-guide/amd64/appendix-preseed.html
+
+# https://www.soljerome.com/blog/2011/06/28/preseeding-ubuntu-10-04/
+# http://www.siriad.com/preseed/preseed.cfg
+
+# http://blogs.cae.tntech.edu/mwr/2007/04/17/unattended-debian-installations-or-how-i-learned-to-stop-worrying-and-love-the-preseedcfg/
+
+# Reformat from email text
+# sed -i -r 's/d-i  */d-i /; s/  *([sb][teo])/\t\1/' preseed
+
+##############
+# Networking
+##############
+
+d-i netcfg/choose_interface	select eth0
+
+# default DHCP networking
+d-i netcfg/get_nameservers	string 
+d-i netcfg/get_ipaddress	string 
+d-i netcfg/get_netmask	string 255.255.255.0
+d-i netcfg/get_gateway	string 
+d-i netcfg/confirm_static	boolean true
+
+# Any hostname and domain names assigned from dhcp take precedence over
+# values set here. However, setting the values still prevents the questions
+# from being shown, even if values come from dhcp.
+d-i netcfg/get_hostname	string vhost
+d-i netcfg/get_domain	string vdomain
+# The wacky dhcp hostname that	some ISPs use as a password of sorts.
+d-i netcfg/dhcp_hostname	string vdomain
+# Disable that annoying WEP key dialog.
+d-i netcfg/wireless_wep	string
+
+#d-i mirror/http/proxy	string
+
+
+########################
+# Installation
+########################
+
+# *!*
+d-i debian-installer/locale	string en_US
+d-i debian-installer/splash	boolean false
+
+# Controls whether to use NTP to set the clock during the install
+d-i clock-setup/ntp	boolean true
+# NTP server to use. The default is almost always fine here.
+#d-i clock-setup/ntp-server	string ntp.example.com
+
+### Finishing
+# Avoid that last message about the install being complete.
+d-i finish-install/reboot_in_progress note
+# weather to prevent the installer from ejecting the CD during the reboot
+d-i cdrom-detect/eject	boolean true
+# weather to make the installer shutdown when finished, not
+#  to reboot into the installed system.
+d-i debian-installer/exit/halt	boolean false
+# weather to power off the machine instead of just halting it.
+d-i debian-installer/exit/poweroff	boolean false
+
+### Mirror settings
+# *!*
+d-i mirror/country	string US
+d-i mirror/http/mirror	string us.archive.ubuntu.com
+d-i mirror/http/directory	string /ubuntu/
+
+### Apt setup
+d-i apt-setup/backports	boolean true
+d-i apt-setup/contrib	boolean true
+d-i apt-setup/multiverse	boolean true
+d-i apt-setup/non-free	boolean true
+d-i apt-setup/proposed	boolean true
+d-i apt-setup/universe	boolean true
+# Enable deb-src lines
+d-i apt-setup/universe/source boolean true
+
+# Select which update services to use
+d-i apt-setup/services-select    multiselect	security
+d-i apt-setup/security_host	string	security.ubuntu.com
+d-i apt-setup/security_path	string /ubuntu
+
+# Configure APT to not install recommended packages by default.
+d-i base-installer/install-recommends boolean false
+# don't try and do automatic updates; that's bcfg2's job
+d-i pkgsel/update-policy	select none
+
+# Force debconf priority to critical.
+debconf debconf/priority select critical
+# Override default frontend to readline, 
+debconf debconf/frontend select readline
+# but allow user to select.
+#debconf debconf/frontend seen false
+
+#################################
+# Disk Partitioning/Boot loader
+#################################
+
+d-i partman-auto/purge_lvm_from_device	boolean true
+
+# Using the default partitioning scheme and wiping any existing partitions. 
+
+d-i partman-auto/disk	string /dev/sda
+d-i partman-auto/method	string regular
+# - regular: use the usual partition types for your architecture
+# - lvm:     use LVM to partition the disk
+# - crypto:  use LVM within an encrypted partition
+d-i partman-auto/choose_recipe select atomic
+# - atomic: all files in one partition
+# - home:   separate /home partition
+# - multi:  separate /home, /usr, /var, and /tmp partitions
+d-i partman/default_filesystem	string ext3
+
+# This makes partman automatically partition without confirmation.
+d-i partman/choose_partition	select finish
+d-i partman/confirm_write_new_label	boolean true
+d-i partman/confirm_nooverwrite	boolean true
+d-i partman/confirm	boolean true
+
+## how partitions are mounted
+# The default is to mount by UUID, but you can also choose "traditional" to
+# use traditional device names, or "label" to try filesystem labels before
+# falling back to UUIDs.
+d-i partman/mount_style select	traditional
+
+### Booting
+
+# To skip installing lilo
+d-i lilo-installer/skip	boolean	true
+#d-i grub-installer/skip	boolean false
+
+# To use GRUB Legacy instead of default GRUB 2
+d-i grub-installer/grub2_instead_of_grub_legacy boolean false
+# Optional password for grub, in clear text
+#d-i grub-installer/password password r00tme
+
+# Use the following option to add additional boot parameters for the
+# installed system (if supported by the bootloader installer).
+# Note: options passed to the installer will be added automatically.
+d-i debian-installer/add-kernel-opts string 
+
+# This is fairly safe to set, it makes grub install automatically to the MBR
+# if no other operating system is detected on the machine.
+#d-i grub-installer/only_debian boolean true
+# This one makes grub-installer install to the MBR if it also finds some other
+# OS, which is less safe as it might not be able to boot that other OS.
+#d-i grub-installer/with_other_os boolean true
+
+# Alternatively, if you want to install to a location other than the mbr,
+# use these lines:
+d-i grub-installer/only_debian boolean false
+d-i grub-installer/with_other_os boolean false
+d-i grub-installer/bootdev  string (hd0,0)
+
+d-i grub-pc/install_devices multiselect /dev/sda
+
+
+#################
+# Localizations
+#################
+
+# Keyboard localization
+d-i console-setup/ask_detect	boolean false
+d-i console-setup/layoutcode	string us
+d-i console-keymaps-at/keymap	select us
+d-i console-setup/variantcode	string 
+#d-i console-setup/variantcode	string dvorak
+
+# Timezone
+d-i clock-setup/utc	boolean true
+# *!*
+d-i time/zone	string	America/Toronto
+
+
+#################
+# User Creation
+#################
+
+d-i user-setup/allow-password-weak	boolean true
+d-i user-setup/password-weak	boolean true
+
+d-i user-setup/encrypt-home	boolean false
+
+# -- create a root user (with login capabilities) having the password ‘r00tme’.
+#d-i passwd/root-login	boolean true
+#d-i passwd/make-user	boolean false
+#d-i passwd/root-password password r00tme
+#d-i passwd/root-password-again password r00tme
+
+d-i passwd/root-login	boolean false
+d-i passwd/make-user	boolean true
+# *!*
+d-i passwd/user-fullname	string	user
+d-i passwd/username	string    user
+d-i passwd/user-password    password	user
+d-i passwd/user-password-again password user
+d-i passwd/user-uid	string    1001
+d-i passwd/user-default-groups	string	adm tty disk lp mail news uucp man dialout fax voice cdrom floppy tape sudo audio dip www-data backup operator list irc src gnats shadow video sasl plugdev staff games users nogroup crontab syslog fuse messagebus mlocate ssh lpadmin sambashare vboxsf
+# cat /etc/group | awk -F':' '{print $1}' | xargs 
+
+#######################
+# Software Selections
+#######################
+
+### Base system installation
+
+### Package selection
+# see https://help.ubuntu.com/community/Tasksel
+#tasksel tasksel/first multiselect standard, web-server
+# Leave empty for minimum installation
+tasksel tasksel/first multiselect
+
+# Individual additional packages to install 
+# a minimum X by fluxbox that start by 'startx', with notepad, file browser and ACPI support
+# with xwininfo (x11-utils) & lndir (xutils-dev)
+d-i pkgsel/include	string	 gpm acpi-support cryptsetup openssh-server localepurge tmpreaper build-essential rsync curl less jed wdiff athena-jot xterm x11-utils xutils-dev xclip leafpad meld xserver-xorg xserver-xorg-video-vesa xinit fluxbox
+
+# Whether to upgrade packages after debootstrap.
+# Allowed values: none, safe-upgrade, full-upgrade
+d-i pkgsel/upgrade select none
+
+
+#######################
+# X configuration
+#######################
+# Monitor autodetection is recommended.
+xserver-xorg xserver-xorg/autodetect_monitor boolean true
+# weather you have an LCD display.
+xserver-xorg xserver-xorg/config/monitor/lcd boolean true
+# X has three configuration paths for the monitor. Here's how to preseed
+# the "medium" path, which is always available. The "simple" path may not
+# be available, and the "advanced" path asks too many questions.
+xserver-xorg xserver-xorg/config/monitor/selection-method \
+       select medium
+xserver-xorg xserver-xorg/config/monitor/mode-list \
+       select 1024x768 @ 60 Hz
+
+
+#######################
+# Packages Preseeding 
+#######################
+# Depending on what software you choose to install, or if things go wrong
+# during the installation process, it's possible that other questions may
+# be asked. You can preseed those too, of course. To get a list of every
+# possible question that could be asked during an install, do an
+# installation, and then run these commands:
+#   debconf-get-selections --installer > file
+#   debconf-get-selections >> file
+
+# == Packages Preseeding Begin
+
+### Pkg:localepurge
+#
+localepurge     localepurge/nopurge     multiselect     en_US
+# Really remove all locales?
+localepurge     localepurge/none_selected       boolean false
+# Also delete localized man pages?
+localepurge     localepurge/mandelete   boolean true
+# localepurge will not take any action
+localepurge     localepurge/remove_no   note
+# Inform about new locales?
+localepurge     localepurge/dontbothernew       boolean false
+# Display verbose output?
+localepurge     localepurge/verbose     boolean false
+# Display freed disk space?
+localepurge     localepurge/showfreedspace      boolean true
+# Accurate disk space calculation?
+localepurge     localepurge/quickndirtycalc     boolean true
+
+### Pkg:tmpreaper
+#
+# default value for TMPREAPER_TIME now set via /etc/default/rcS
+tmpreaper       tmpreaper/TMPREAPER_TIME        note
+# tmpreaper can now be adjusted through /etc/tmpreaper.conf
+tmpreaper       tmpreaper/confignowexists       note
+# Please first read README.security
+tmpreaper       tmpreaper/readsecurity  note
+# Please first read README.security
+tmpreaper       tmpreaper/readsecurity_upgrading        note
+
+# == Packages Preseeding End
+
+
+#######################
+# Advanced options
+#######################
+# https://help.ubuntu.com/12.04/installation-guide/i386/preseed-advanced.html
+
+
+### Running custom commands during the installation
+# http://ubuntuforums.org/showthread.php?t=1977570
+# http://ubuntuforums.org/showthread.php?t=1314680
+
+# This first command is run as early as possible, just after
+# preseeding is read.
+#d-i preseed/early_command string anna-install some-udeb
+
+# This command is run immediately before the partitioner starts. It may be
+# useful to apply dynamic partitioner preseeding that depends on the state
+# of the disks (which may not be visible when preseed/early_command runs).
+#d-i partman/early_command \
+#       string debconf-set partman-auto/disk "$(list-devices disk | head -n1)"
+
+# This command is run just before the install finishes, but when there is
+# still a usable /target directory. You can chroot to /target and use it
+# directly, or use the apt-install and in-target commands to easily install
+# packages and run commands in the target system.
+#d-i preseed/late_command string apt-install zsh; in-target chsh -s /bin/zsh
+#d-i preseed/late_command string in-target update-alternatives --set editor /usr/bin/vim.tiny;echo "taggart	ALL=(ALL) ALL">>/target/etc/sudoers;sync
+#
+#d-i preseed/late_command	string \
+#    in-target wget http://www.siriad.com/preseed/postinst.sh -O /root/postinst.sh; \
+#    in-target /bin/bash /root/postinst.sh
+
+#--------
+# http://comments.gmane.org/gmane.linux.debian.user/431697
+#
+# With that many commands it is probably better to put all of those into
+# a script and then run the script.  Something like this which is an
+# edit of what I do here.
+#
+#  d-i preseed/late_command string wget -O/target/var/tmp/bootstrap http://example.com/bootstrap; in-target sh /var/tmp/bootstrap
+#
+# Then redirect all output to a file in /var/tmp or /root or some other reboot
+# persistent location and see what output is emitted there.  Something like
+# this:
+#
+#  #!/bin/sh
+#  exec >>/root/bootstrap.out 2>&1
+#  set -x
+#  mkdir . . . 
+#--------
+
+## My custom commands
+#  wget -O /target/var/tmp/postinst.tgz `cat /proc/cmdline | xargs -n 1 | grep url=http: | sed -r 's,(.*/).*,\1,`/postinst.tgz ; \
+#  wget -O /target/var/tmp/postinst.tgz "$(cat /proc/cmdline | xargs -n 1 | grep url=http: | sed -r 's,(.*/).*,\1,)"/postinst.tgz ; \
+d-i preseed/late_command string \
+  wget -O /target/var/tmp/postinst.tgz http://my.web/path/postinst.tgz ; \
+  wget -O /target/var/tmp/ubuntu.locales.tz2 http://my.web/path/ubuntu.locales.tz2 ; \
+  in-target tar zxf /var/tmp/postinst.tgz -C /tmp/ ; \
+  in-target rm -v /var/lib/locales/supported.d/*; \
+  in-target tar xvjf /var/tmp/ubuntu.locales.tz2 -C / ; \
+  in-target /usr/sbin/locale-gen --purge; \
+  in-target /bin/sh /tmp/postinst/postinst.sh; \
+  echo "%sudo   ALL=(ALL) NOPASSWD: ALL">>/target/etc/sudoers;sync; \
+  in-target groupmod -g 1001 user; \
+  in-target apt-get -y purge virtualbox-guest-utils virtualbox-guest-x11 virtualbox-ose-guest-x11; \
+  in-target apt-get -y install dkms; \
+  in-target touch /root/postinst.done
+------------------------
+
+You can download the above preseed file from http://paste.debian.net/9417/. Also, here is the first part of my +postinst.sh+, which was downloaded in the +late_command+ as +postinst.tgz+, and expanded later to +/tmp/postinst/postinst.sh+, then executed.
+
+[source,shell]
+------------------------
+#!/bin/sh
+exec >>/root/postinst.out 2>&1
+set -x
+
+# Script begins
+type bash
+cd `dirname $0`
+pwd
+PATH=$PATH:.
+
+# fix sudoers
+#sed -i 's/^%sudo.*ALL:ALL.*/%sudo	ALL=(ALL) NOPASSWD: ALL/' /etc/sudoers
+
+# == add apt sources
+
+# the Medibuntu - Ubuntu multimedia repository
+wget --output-document=/etc/apt/sources.list.d/medibuntu.list http://www.medibuntu.org/sources.list.d/$(lsb_release -cs).list && sudo apt-get --quiet update && sudo apt-get --yes --quiet --allow-unauthenticated install medibuntu-keyring && sudo apt-get --quiet update
+add-apt-repository -y ppa:jon-severinsson/ffmpeg
+
+# == my customization
+...
+------------------------
+
+== The magic revealed
+
+As you can see from enclosed <<references,references>>, there are lots of way to let the net boot CD to use the preseed file. Which one works and which ones don't? What is the minimum that you need to type on that kernel boot command line, and how exactly to do it?
+
+When the +mini.iso+ boots up, on seeing the installer screen, press +TAB+, you will be prompted with +boot:+ and the default kernel boot commands. At the end of it, appended the following kernel boot options (your preseed file url will be different from mine of course, so replace my URL with the address to your preseed configuration file):
+
+ auto=true url=http://my.web/path/preseed-u
+
+That's the minimum that you need to type. All the rest are specified in the preseed file. 
+
+[quote,http://wiki.debian.org/DebianInstaller/Preseed]
+____________________________
+The "auto" command launches the installation in the automated mode, where the configuration of hostname, locale and keymap are postponed so that they can be answered from the preseed file loaded from the network. You could use "install url=..." but you'd have to answer these questions manually, regardless of what you have in the preseed config.
+____________________________
+
+However, I found that's not true or no longer true any more. The configuration of domain and host name, and keymap are still being asked, even if you have them in your preseed file as shown above. So if you want to kickstart the preseeded installation without a single questions asked, append the following more options to kernel boot prompt:
+
+  console-keymaps-at/keymap=us hostname=myhost domain=example.com locale=en_US
+
+[NOTE] 
+===============
+- This is what I found from the Internet, but I didn't try out myself, because I'll type less into the installer than into the kernel boot options.
+- It is claimed that it "was tested on Ubuntu 10.04 and 10.10 and worked without asking keyboard or locale related questions."
+- The +locale=en_US+ does not seem to be necessary to me, but all other preceed articles state that it is necessary.
+===============
+
+
+== Further
+
+My Ubuntu preseed file tested fine for Ubuntu 12.04 (Precise), 13.04 (Raring), and 13.10 (Saucy).
+
+=== Troubleshooting
+
+[quote,http://wiki.debian.org/DebianInstaller/Preseed]
+____________________________
+- If you're debugging a new preseed setup, I suggest that you set +DEBCONF_DEBUG=5+ on the kernel command line -- it causes the messages that end up in syslog (and so on the ALT-F4 screen) to be verbose enough that you can generally tell which preseed values you have forgotten when a question pops up. When you're presented with a question, flip to the F4 screen, and the last debconf variable mentioned is probably the one you need to set in order to not see that question again.
+- If your preseed value is being ignored and whilst using +DEBCONF_DEBUG=5+ to watch the debconf output you see "FSET blah false" it just means that a piece of code really wants that question to be seen, and such questions are not normally preseedable - the only way to avoid them is to avoid the situation that gives rise to that question being asked.
+____________________________
+
+[[debian]]
+=== Debian Preseed Installation
+
+I don't want to maintain two version of my preseed files (one for Ubuntu and one for Debian), because it means either I have to make changes in two places or the two preseed files get out of sync eventually. Instead, this small piece of command line code will get me a Debian preseed file:
+
+  sed '\#apt-setup/security_#d; s/us.archive.ubuntu.com/ftp.us.debian.org/; \#mirror/http#s/ubuntu/debian/; /grub/s/hd0,0/hd0/' preseed-u > preseed-d
+
+The +preseed-u+ is my Ubuntu preseed file and +preseed-b+ Debian. It tested fine for me, as of yesterday, except that the boot loader installation failed, for both of the mini.iso files that I listed above (sid and daily-builds). I switched between the GRUB Legacy and GRUB 2 back and forth but it turned out to me that nothing works. My latest theory is that Debian installer is ignoring my preseeded grub preference, and is using grub 2 all the time; and in the meantime, the grub 2 boot loader installation always fail when installing to PBR. So my finial script change the grub installation from PBR to MBR, but I didn't bother testing it in the end. 
+
+If you get the same boot loader installation failure, continue on the installation without installing the boot loader, then use the http://www.supergrubdisk.org/[SuperGRUB] to boot your installed OS (then install the boot loader after it boots up). Do NOT use the http://www.debian.org/releases/stable/i386/ch08s07.html[rescue mode] of the Debian installer to install boot loader for your installed OS, because it'll be too much trouble: You'll be shown the first few screens of the installer, and have to go through each and every one of them, including locale & kbd-chooser, hostname, domain name, source site, downloading packages, configure timezone, etc, etc!
+
+== Conclusion
+
+With Debian/Ubuntu, it's much simpler to add more tools to your system than trying to slim it down. Using the mini.iso net install can give you the minimum system you want; and this post is all you need to know about Debian/Ubuntu preseeded installation, in one single place. 
+
+[[references]]
+== References
+
+- http://blog.dustinkirkland.com/2011/03/ubuntu-server-quick-install-no.html[Ubuntu Server Quick Install, No Questions Asked!]
+- https://www.soljerome.com/blog/2011/06/28/preseeding-ubuntu-10-04/[Preseeding Ubuntu 10.04]
+- http://searchsystemschannel.techtarget.com/feature/Performing-an-automated-Ubuntu-install-using-preseeding[Performing an automated Ubuntu install using preseeding]
+- https://help.ubuntu.com/12.04/installation-guide/amd64/appendix-preseed.html[Ubuntu Installation Guide - Automating the installation using preseeding]
+- https://help.ubuntu.com/12.04/installation-guide/amd64/preseed-contents.html[Contents of the preconfiguration file (for precise)]
+- http://wiki.debian.org/DebianInstaller/Preseed[DebianInstaller Preseed]
+- http://hands.com/d-i/["Hands-off" Debian Installation]
+- http://serverfault.com/questions/143296/how-to-get-http-preseed-to-work-correctly-on-ubuntu-10-04-lts-lucid[How to get HTTP preseed to work correctly on Ubuntu 10.04 LTS (Lucid)]

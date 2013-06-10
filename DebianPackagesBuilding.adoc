@@ -1,0 +1,155 @@
+= Debian Packages Building
+
+:blogpost-categories: Debian,Ubuntu,Package Building
+
+Have you ever thought of trying to build/maintain Debian packages? Were you deterred by the vast amount of knowledge you need to know before even get started? Have you ever wished that there are some right-to-the-point step-by-step instructions with up-to-date tools on how to do it? Were you confused about dpkg-dev and devscripts, or debhelper, cdbs, dh, dpkg-buildpackage, dh-make, pbuilder, and sbuild? Do you have a clear picture which one is the lasted and most recommended tool to use? 
+
+pass::[<!--more-->]
+
+== The Problem
+
+<<goal,Skip the problem statements and cut to the chase>>.
+
+I had always been trying to maintain some useful debian packages that are orphaned. My first attempt failed miserably, when I was just trying to rebuild emacs source package as-is -- the +apt-cache depends+ failed to install all the depends that I needed, and the build stopped in the middle that nobody on debian.user mlist could explain. Then, when glimpse was removed from the repo [1], which was more than 10 years ago, I told myself again it was time to learn to maintain debian packages, so that I could maintain glimpse (IMHO, glimpse is so far still the best *personal* searching tool, and I still think it is more a 'political' decision to remove it).
+
+[1] http://lists.debian.org/debian-user/2001/09/msg00312.html
+
+But I was never managed to. The problem is, I'm a system learner. I.e., I learn through build up my overall knowledge first, before rolling up my sleeves and dive in. I.e., I need to build up a fairly decent knowledge about what I'm doing before doing it. While trying to learn to maintain debian packages, I realized that there are A LOT to learn, which is hard. And I found what makes it even harder is that I have to learn such practical things bits by bits here and there. I.e., if such practical issues has been written out clearly, my life would be much easier. 
+More than 10 years later, I have to admit that maintaining debian/ubuntu packages is still convoluted to me, even though I've tried to pick it up many times. I was always defeated merely by reading through the overwhelmingly vast information, and made only half way through. So it never happened.
+
+[[goal]]
+== The Goal
+
+Subject: Re: What's the proper way to build from debian dsc +
+Newsgroups: gmane.linux.debian.devel.mentors +
+Date: Thu, 23 May 2013
+
+Now I'm planning to do it with a different approach. In stead of starting background reading from the start over and over again and never able to make it to the end, I'm going to start with the easiest step that I can think of -- try to build and upload a orphaned/removed package as the first step.
+
+So I found the glimpse dsc file at +
+ftp://ftp.cstone.net/debian/pool/non-free/g/glimpse/glimpse_4.18.5-1.dsc
+
+Can anyone explain me in simple commands how I can build and test upload this glimpse package, in as few steps as possible please? Because proper commands always speaks for themselves. You have to have a decent knowledge about a language before you can write something elegant and useful, from start to the end, but it'll be much simpler if you can copy from something similar, which is well-commented and proven-to-work code, and go from there.
+
+== Using dpkg-buildpackage
+
+Fetch the source tarball and debian diff:
+
+ $ dget ftp://ftp.cstone.net/debian/pool/non-free/g/glimpse/glimpse_4.18.5-1.dsc
+ $ cd glimpse-4.18.5
+
+Add new changelog entry:
+
+ $ dch -i
+
+Build (an unsigned) package:
+
+ $ dpkg-buildpackage -rfakeroot -us -uc
+
+Upload to ftpmaster.d.o (but there's no point in doing this if you're not a DD/DM):
+
+ $ dput glimpse_$VERSION_$ARCH.changes
+
+There's obviously more to it, e.g. working with a patch system (quilt, or a VCS), running lintian, building in a clean environment with tools like pbuilder/sbuild, etc., but that'll get you started. One word of advice: pick a package that's more modern to learn from. Modern, short-hand dh is generally easier to work with (especially for simple packages) than classic debhelper.
+
+Vincent Cheng @gmail.com +
+23 May 2013
+
+[NOTE]
+====================
+It is true that there's no point in uploading to ftpmaster.d.o if you're not a DD/DM, but it also not all the truth. Besides uploading to ftpmaster.d.o, there is another option -- uploading to mentors, as the next answer explains. 
+
+Even if you're not a DD/DM, you can always upload your already-built package to mentors.debian.net. 
+
+http://mentors.debian.net/cgi-bin/maintainer-intro
+
+You can see that there are many packages uploaded there waiting for sponsors.  Once uploaded, the chance that your package will be sponsored will be greatly increased. Moreover, even if no sponsors upload it for you, people can still use your packages, via setting the http://mentors.debian.net/debian in their apt sources.
+
+NB, this also demonstrates why I considered it to be so important to get an overall picture first before diving in, because you've build up the momentum that you will not be easily deterred by a single saying, or stopped by some unexpected/undocumented glitches along the route.
+====================
+
+== Using debuild
+
+[source,shell]
+------------------------
+% export DEBEMAIL=youremail@yahoo.com
+% export DEBFULLNAME="Your Name"             # or whatever you want to use
+% dget ftp://ftp.cstone.net/debian/pool/non-free/g/glimpse/glimpse_4.18.5-1.dsc
+% cd glimpse-4.18.5
+   # make required changes to the package
+   # change Maintainer in debian/control to match DEB* settings above
+% dch -i
+   # add descriptions of your changes using your editor, opened by dch
+   # save and exit
+% debuild
+   # if build is successful, *.deb packages will be left up one level
+   # install packages, test, iterate as needed
+% cd ..
+% debsign *.changes
+   # the previous step requires you have a GnuPG key set up
+------------------------
+
+They're now ready to upload, which you probably want to do with dput.  If you're uploading it to mentors, see the mentors documentation for the correct dput configuration and target.
+
+Russ Allbery @debian.org +
+23 May 2013
+
+== Using pbuilder
+
+[NOTE]
+This was the note that I jotted down from my friend LI Daobing, the maintainer of ibus-pinyin, when he tried to show me how easy it is to build a Debian package. That was nearly 5 years ago, yet, IMHO it is the best approach to build a Debian package, because it uses the most-up-to-date tools, and the method is recommended all over the places. Oddly, everybody recommended it, but nobody has ever put these magic commands sequence together publicly, or at least I was never able to find a Debian packaging instruction as clear and as simple as this. I consider it to be the most valuable highlight of my whole blog (not because other message are not valuable, but because this is scarce. It's like up-sleeve-tricks revealed).
+
+[quote, LI Daobing @gmail.com]
+____________
+I can teach you how to make a package (just 5 minutes)
+
+1. sudo apt-get install build-essential devscripts pbuilder
+2. mkdir tmp; cd tmp
+3. dget "https://launchpad.net/%7Eibus-dev/+archive/ppa/+files/ibus_1.1.0.20090311-0ubuntu1~ppa1.dsc"
+4. dpkg-source -x ibus_1.1.0.20090311-0ubuntu1~ppa1.dsc
+5. cd ibus-1.1.0.20090311
+6. sudo /usr/lib/pbuilder/pbuilder-satisfydepends
+7. debuild
+8. sudo debi
+____________
+
+
+== Git based
+
+ > So I found the glimpse dsc file at
+ > ftp://ftp.cstone.net/debian/pool/non-free/g/glimpse/glimpse_4.18.5-1.dsc
+
+Something I always check in similar situations is if the package is available at snapshot.debian.org.  I primaraily use git these days, and if what I want to work on is available there (like glimpse is) I like to use something like 'git-import-dscs --debsnap ...' in order to create an initial code repository to work with.
+
+Robert J. Clay @gmail.com +
+23 May 2013
+
+[[tutorial]]
+== Debian packaging tutorial
+
+[quote]
+____________
+Not complaining, Debian has lot of good documents. Just that they are not
+to my taste. :-) They are written in the reference book style, whereas I 
+more prefer a cook book style. :-) Still not complaining -- We've got to
+appreciate what we already have so far. 
+____________
+
+Hi,
+
+have you considered the following tutorial ?
+
+http://www.debian.org/doc/devel-manuals#packaging-tutorial
+
+Charles Plessy @debian.org +
+23 May 2013
+
+[NOTE]
+====================
+This is the practical Debian packaging tutorial I meant and was trying to find. It "flied under my radar" because it is pdf based, not html based. I always hate documents that are only provides a pdf version with no html alternatives. To me, those documents have a bold claim: "I don't care if it is inconvenient for you to view/peek it, and I don't even care if you could ever find me via google". 
+
+Such I-don't-care attitudes always give me a hint of the quality of such documents. I might not be always right, and I admit I'm wrong this time. This pdf document is very good. I wish I've opened it up much earlier.
+
+It gives practical instructions on debhelper and dh, not debuild/pbuilder, but still it's a very good one, because as it puts, "You need to know debhelper to use dh". Similarly, you need to know about debhelper and dh to understand better about debuild/pbuilder.
+====================
+

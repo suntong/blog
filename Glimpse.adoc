@@ -1,0 +1,146 @@
+= Glimpse, the best personal search engine
+
+:blogpost-categories: Debian,Ubuntu,searching,search engine,glimpse,agrep
+
+_"I've seen that before, but I can't remember where I saw it."_
+
+_"I've done that before, but I can't recall the details how I did it."_
+
+Do the above sound familiar to you? Did they happen to you before? Have you every wished you that you have such a good memory that whatever you saw, whatever you did, you will always keep a sharp memory as if it just happened seconds earlier? We all hope so; we all know it is impossible; and we all know the solution -- note taking. As an old Chinese saying goes, "A worn pen is better than good memory" -- no matter how good your memory is, writing it down is always a better choice.  Note taking is good for you, as "Memory is the mother of all wisdom".
+
+Note taking is the answer, however it is not all the answer -- _"I've written that down before, I swear it, but I can't find where I wrote it now."_ Sounds familiar again? So the most important part of note taking is being able to find what you have written down. And the answer to that? -- search engines. 
+
+If you know me or know my style, than you will know that I'm not a person who would settle down with a single answer -- I want to know all the answers. I always want to exhaust all possible answers before trying to make a decision. More than 10 years ago, around year 2000, when I was searching for a search engines to solve my note-finding problem, I had the luxury to spend time on analyzing all available search engines on the market -- nearly 30 of them: ASPSeek, BBDBot, Datapark, ebhath, Eureka, ht://Dig, Indri, ISearch, IXE, Lucene, Managing Gigabytes (MG), MG4J, mnoGoSearch, MPS Information Server, Namazu, Nutch, Omega, OmniFind IBM Yahoo! Ed., OpenFTS, PLWeb, SWISH-E, SWISH++, Terrier, WAIS/freeWAIS, WebGlimpse, XML Query Engine, XMLSearch, Zebra, and Zettair.
+
+My final choice? -- glimpse. 
+
+pass::[<!--more-->]
+
+== Glimpse
+
+From the ACM Digital Library (http://dl.acm.org/citation.cfm?id=1267078):
+
+[quote, Udi Manber & Sun Wu]
+________________________
+GLIMPSE, which stands for GLobal IMPlicit SEarch, provides indexing and query schemes for file systems. The novelty of glimpse is that it uses a very small index - in most cases 2-4% of the size of the text - and still allows very flexible full-text retrieval including Boolean queries, approximate matching (i.e., allowing misspelling), and even searching for regular expressions. In a sense, glimpse extends agrep to entire file systems, while preserving most of its functionality and simplicity. Query times are typically slower than with inverted indexes, but they are still fast enough for many applications. For example, it took 5 seconds of CPU time to find all 19 occurrences of Usenix AND Winter in a file system containing 69MB of text spanning 4300 files. Glimpse is particularly designed for personal information, such as one's own file system. The main characteristic of personal information is that it is non-uniform and includes many types of documents. An information retrieval system for personal information should support many types of queries, flexible interaction, low overhead, and customization, All these are important features of glimpse.
+________________________
+
+CAUTION: Now, before I go on explaining why I chose glimpse for myself, I have to warn you that the glimpse had been taken off from the official Debian archive, with a whopping http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=60852[grave security bug]. You'd better check that out before continue on reading the following. 
+
+To me that grave security bug means nothing, because all that I'm using glimpse is within my personal environment, whereby I'm the only one using the system. My family members will use my home Linux environment too, but they are not a threat. I believe my friends who access my system occasionally will be neither interested in hacking my glimpse nor having the capability to utilize the /tmp races security bug. Even if they do, the worst case is I lost my glimpse indexes. Big deal! So I agree that it is http://lists.debian.org/debian-user/2001/09/msg00312.html[a 'political' decision to remove it]. But you have to make a decision on your own. 
+
+I've revived the glimpse package for Ubuntu and put it in https://launchpad.net/~suntong001/+archive/ppa[my PPA]. As I don't want to get into Debian politics, so there is no plan to build Debian packages for now. However, Debian systems can use the Ubuntu packages without any problem. 
+
+== Personal search engine
+
+Why glimpse? The keyword to me is 'personal'. The glimpse is designed for personal use. That's a feature distinctly designed in glimpse. This strikes me the most.
+
+What does it mean 'personal'? In my view, "personal use" and "for enterprise" represent the two extreme of the demands. On the enterprise side, the motto is reaching maximum performance with maximum cost, so breakthrough, parallel, redundant, throughput are the keywords. On the personal side however, it's reaching reasonable goals with minimum effort. Sometimes these two goals might align quite well (.e.g., nginx), but for search engines, these two goals are conflicting. 
+
+The most prominent effect of such conflict is the index size. In order for search engines to do the search, they have to build indexes first. That's how searches can be speed up. It is not uncommon at all for search engines to build up indexes more than half the size of the original texts. If you text is 100M, its search index is often more than 50M. For some search engines, in order to reach maximum performance, their index are even more than 100% of the original text size. 
+
+According to "A Comparison of Open Source Search Engines" [1], here are a list of index size of Open Source search engines:
+
+///////////////////////////////////////////
+In Ms Excel terms, I want to convert the following table,
+
+[cols=3,options="header",width="50%"]
+|=======================
+|Col 1A |Col 2A     |Col 2B
+|Col 1B    |Item H     | H2
+|2    |Item 2     |b
+|3    |Item 3     |c
+|6    |Three items|d
+|=======================
+
+so as to "merge & center" the Col 2A and Col 2B together into one cell, Col 2. Also "merge & center" the Col 1A and Col 1B together into one cell, Col 1.
+
+The answer:
+
+[cols=3,width="50%"]
+|=======================
+.2+^.^|Col 1 2+^|Col 2
+   |Item H     | H2
+|2    |Item 2     |b
+|3    |Item 3     |c
+|6    |Three items|d
+|=======================
+///////////////////////////////////////////
+
+[cols=",>,>,>",options="header",width="50%"]
+|============================
+|Search Engine
+|750MB |1.6GB |2.7GB
+|ht://Dig
+| 108% | 92% | 104%
+|Indri
+| 61% | 58% | 63%
+|IXE
+| 30% | 28% | 30%
+|Lucene
+| 25% | 23% | 26%
+|MG4J
+| 30% | 27% | 30%
+|Omega
+| 104% | 95% | 103%
+|OmniFind
+| 175% | 159% | 171%
+|Swish-E
+| 31% | 28% | 31%
+|Swish++
+| 30% | 26% | 29%
+|Terrier
+| 51% | 47% | 52%
+|XMLSearch
+| 25% | 22% | 22%
+|Zettair
+| 34% | 31% | 33%
+|============================
+Table 1: Index size of each search engine, when indexing collections of
+750MB, 1.6GB, and 2.7GB.
+
+///////////////////////////////////////////
+.2|Search Engine
+3|Index Size
+|750MB |1.6GB |2.7GB
+///////////////////////////////////////////
+
+If you think index size being over 60% of original size is crazy, see how many of them are over 100%, and notice that the craziest one is about 170% of original size!
+
+[1] http://wrg.upf.edu/WRG/dctos/Middleton-Baeza.pdf +
+Last retrieved on Saturday, June 01, 2013
+
+== The best personal search engine
+
+How big the index size for glimpse? -- http://dl.acm.org/citation.cfm?id=1267078["in most cases 2-4% of the size of the text"]. That's phenomenon! How it is ever possible? By its ingenious "two-level query" design, which gives you the following most important factors of the best personal search engine:
+
+. *Small footprint*. Comparing to all those search engines out there with over 40% of original size, glimpse is taking 1/10 of that space and most often even smaller. 
+. *Worry free*. 
+.. Enterprise software comes with enterprise level of support requirements: big space, rigid index refreshing routines, etc. What if you've updated your document, and the next run of re-indexing has not kicked in yet? Sorry! no luck, wait for another hour for your update to show up in search (provided that your indexing job is run hourly). 
+.. For personal use, we hope that we don't need the indexing engine running all the times, yet we hope that our update can be found instantly, i.e., even if it's after last index updating. Theses two requests are contradicting themselves, yet 
+glimpse is able to give you both, by the brilliant "two-level query" design. 
+
+I'm not going to dive in and explain what the "two-level query" design is, you can refer to the aforementioned academic paper for details. Here are all http://www.searchtools.com/analysis/free-search-engine-comparison.html[other searching features from glimpse] for you to consider:
+
+- Boolean Search - Can the search engine look up pages containing some word and not containing some other word? Does the search engine support the AND and OR logic among query words? Yes
+- Phrase Matching - Can the search engine match only those documents that contain words in exactly the same sequence as that of the query? No
+- Attribute Search - Can search engine perform search within only the body, title, description, keywords, URL, or other parts of documents? No
+- Fuzzy Search - Can the search engine match documents that contain words that are similar to requested query? Are search by soundex, metaphone, or substring supported? Yes
+- Word Forms -- Is word stemming supported? Not built in, but doesn't stop you from doing it yourself.
+- Wild Card - Is there a wild card character that can be used in search to match any one or more character or symbol? Yes
+- Regular Expression - Regular expressions are symbols that users add to their queries to describe complex patterns to match. Is regular expression search supported? Yes
+- Numeric Data Search - Can the search engine deal with numeric queries such as "Quantity > 300"?  No
+- Case Sensitivity - Is the search engine case sensitive, or can it be configured as case sensitive? Yes
+- Nature Language Query - Does the search engine support nature language queries? No
+
+What I'd like to add to that features list specifically for glimpse are:
+
+- *Small overhead*. Unlike some other search engines that require you to have like web server or java installed for them to function, glimpse is just a small C-base program, that literately depends on nothing. 
+- *Versatile*. Unlike some other search engines that only search for specific type of files (e.g., html), glimpse was designed for general purpose searching. You can search from HTML documents, Word, PDF, and any other documents that can be filtered to plain text.
+- *Best of the best*. Of all the nearly 30 search engines that I studies, not all of them made their way into Debian archive. Only the best are selected, and only the best of the best are well maintained. By the time glimpse was pulled from Debian archive, http://lists.debian.org/debian-user/2001/09/msg00312.html[none of the existing search engines was as stable and as worry free as glimpse, regardless inside the Debian archive or not]. Even after glimpse was pulled, +agrep+ (which is http://en.wikipedia.org/wiki/GLIMPSE[from the same author]) still remains in Debian archive, up till today, as one to the most versatile text searching tools. 
+- *Less demanding*. As said before, you don't need the indexing engine running all the times. I only run my indexing job once a day, and the "two-level query"  can always give me the accurate and most-up-to-day results during the day. 
+- *Lighting fast*. The result are not delivered by Java or rendered via web server. It comes straight from the C-based search program. Based on my experiences, the respond time is below 0.2 seconds, even on the hardware ten years ago and via the "two-level query", which is more than enough for me. 
+
+NOTE: Oh, mind you, the other reason that I chose glimpse is that it is a command line tools. Some people prefer everything GUI-and-click based, I'd rather prefer them to be text & command line based. 
+
+

@@ -1,0 +1,50 @@
+= Highlighting strings in text output with histring
+
+:blogpost-categories: Debian,Ubuntu,grep,highlight,histring,text tool
+
+Note, I posted the following http://www.debian-administration.org/article/464/Highlighting_strings_in_text_output_with_histring[on debian-administration.org] on Tue 21 Nov 2006. I'll repost it here with some editing.
+
+Recently there was an article on this site [debian-administration.org] discussing adding colour highlighting to grep. Now we're going to look at a general purpose highlighting tool called +histring+.
+
+If you like to work in console more than X, and like text tools more than GUI ones then +histring+ is definitely a tool for you!
+
++histring+ simply highlights strings using ANSI terminal escape codes. It is extremely small and lighting fast. I almost use it everywhere in my script where I need a quick peek into large output. Moreover, you almost don't need to learn it, as its syntax is almost identical to grep. The following examples will turn you into a histring-pro in just minutes.
+
+pass::[<!--more-->]
+
+This is a nifty alias that I use more often than anything else, to accept output from diff or rcsdiff to highlight diff files:
+
+  histring -fE '^Comparing files .*|^diff .*' | histring -c yellow -fE '^\-.*' | histring -c green -fE '^\+.*'
+
+With that, who needs to wait 0.5 seconds for tkdiff? :-)
+
+[NOTE]
+======================
+- Someone commented on http://www.debian-administration.org/article/464/Highlighting_strings_in_text_output_with_histring[my OP] that there is a special purpose tool especially for highlighting diff outputs, which is "a little easier to use".
+- oDn commented that +histring+ helped him enjoy the colourful highlighting of the mail log files, then there was a rush of other comments listing other tools that especially for log highlighting.
+- Other people commented that emacs or vim can do good highlighting as well. 
+
+I agree that there are all kinds of special purposed highlighting tools out there, and every editors' highlighting capability are good as well. But, maybe my value is different from theirs, I really don't get the point of installing a bunch of special purposed highlighting tools for various special tasks, while a single, small and simple tool can take care of them all. This is the beauty of +histring+, you don't need to install a bunch of other tools, then learn to use them. One is enough and good for all. 
+
+The following two examples can show how general-purpose and versatile +histring+ can be. I believe no other ready-made special-purposed tools or editors can do that.
+======================
+
+With the above alias I also wrote another alias to compare rcs file *version by version*. I guess no other diffing tool has such an ability to show how things evolve.
+
+You can use +histring+ in any situation, not just for diffs and logs. Check this out:
+
+  zip -t *.zip 2>&1 | histring -fEi 'warning |bad CRC|error: ' | less
+
+This example will show me the content of my .zip files. More importantly, it will alert me if any of the zip files has any problem.
+
+Once you get used to it, the application situations are endless, and you can't image the life without it.
+
++histring+ was originally available from FreeBSD, e.g., the following URL:
+
+ftp://ftp.FreeBSD.org/pub/FreeBSD/ports/local-distfiles/roam/misc/
+
+When I wrote my OP, I was able to persuade Michael Prokop from grml.org to create and host a Debian package for it in grml.org repo. But sadly, it was removed several years later. From then on, I had to rely on my saved .deb package file for my +histring+ installation. 
+
+Now that I'm starting to maintaining Debian/Ubuntu packages, the first thing I did was to revive it and put it in https://launchpad.net/~suntong001/+archive/ppa[my Ubuntu PPA]. 
+
+Hope you enjoy it as I do. 

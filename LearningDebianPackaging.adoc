@@ -1,0 +1,18 @@
+= Learning Debian/Ubuntu Packaging
+
+:blogpost-categories: Debian,Ubuntu,Package Building
+
+In preparing myself for Debian/Ubuntu package building, I gathered documents from various sources, focusing on the practical package building, because I found myself have to learn such practical things bits by bits here and there. 
+
+Now I've compiled all my collections together: 
+
+https://docs.google.com/document/d/1HSzSIShkN7kNFKCtHC80gZfI7dtelrdnywmG9n0qoeI/edit[*Debian Packing 101*]::
+
+When I was trying to maintain Debian packages, and when I have found some files from the Internet which are supposed to be the source package, I didn't even know if any or all of them belongs to the source package. So I took notes from various sources that might help me identifying the supposed source package files. 
+
+https://docs.google.com/document/d/1y6IX4ghHJJoF4kYRJWq2krosNoTav56C0UTZwW4B_z8/edit[*Practical Debian Packages Building*]::
+All the documents that I found from the Internet that focus on the  package building and being practical.
+
+But, as it turned out, the best document is the "Debian Packaging Tutorial" officially available from the www.debian.org, as explained in my 
+http://sfxpt.wordpress.com/2013/05/24/debian-packages-building/#tutorial[Debian Packages Building].
+

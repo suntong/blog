@@ -1,0 +1,136 @@
+= Debian/Ubuntu Packages Uploading
+
+:blogpost-categories: Debian,Ubuntu,Package Uploading
+
+== The Problem
+
+The focus is not <<single,how to upload a package>> here, but 
+
+- Do you have to package multiple times to get each version of Ubuntu?
+- How to easily build and upload a package to multiple repositories?
+
+As e.g., 
+
+*How can I upload package for several ubuntu versions to Launchpad automatically?* +
+http://askubuntu.com/questions/33163/how-can-i-upload-package-for-several-ubuntu-versions-to-launchpad-automatically
+
+Cody Somerville http://blog.launchpad.net/ppa/simplifying-dputcf-for-multiple-ppas[gave a good summary] of the problem: "We use dput to upload packages to a Debian repository such as the Debian Archive, Ubuntu Archive, or personal archives such as a Personal Package Archive on Launchpad. Getting the hard work you’ve done to the archive for the whole world to enjoy is an important part of a packager’s work flow and should be [as] easy as possible".
+
+pass::[<!--more-->]
+
+== The Conclusion
+
+As it turned out, "there is more than one way that leads to Rome". So depending on your situation, choose the following method(s):
+
+- <<manual,The manual way>>, which some type of people would consider the easiest.
+- <<scripted,The scripted way>>, which some other type of people would consider this automatic approach to be the easiest, so you just fire up the script and forget about it. No need to check back launchpad every now and then to see if it is OK to make your next move anymore. 
+- <<official,The official way>>. The above two methods will just use the same source package for all different versions. As it is easily conceivable that there will be cases that they'd fail. I.e., it is necessary to compile for different distros/versions differently. If you have to do that, there are tools to help. 
+
+== References
+
+The following articles are collected all over the Internet, and gathered her for convenient. The copyright belongs to the respective authors. 
+
+[[single]]
+=== How to upload packages to mentors.debian.net?
+
+http://mentors.debian.net/intro-maintainers
+
+You need to use dput to upload packages. We accept your uploads through HTTP or FTP. All packages must be signed with the GnuPG key you configured in your control panel.
+
+==== HTTP uploads
+
+To use HTTP put the following content to your ~/.dput.cf file:
+
+---------------------------
+[mentors]
+fqdn = mentors.debian.net
+incoming = /upload
+method = http
+allow_unsigned_uploads = 0
+progress_indicator = 2
+# Allow uploads for UNRELEASED packages
+allowed_distributions = .*
+---------------------------
+
+[[manual]]
+=== The manual way
+
+*PPA & Packaging: Having versions of packages for multiple distros* +
+http://askubuntu.com/questions/30145/ppa-packaging-having-versions-of-packages-for-multiple-distros
+
+[quote]
+________________________
+I've already packaged the stuff for a lucid build. Any clue how I'd be able to create the same packaging, except package it for maverick, and put it up to the same PPA that I've put the lucid packaging to?
+________________________
+
+Check out the above url for Nathan Osman's answer with nice screen shots. Below is my commented text only version. 
+
+Probably the easiest way is to simply copy the binaries on Launchpad:
+
+. Go to your PPA and click on 'View package details', or append `+packages` to the end of your ppa url, e.g.: https://launchpad.net/~yourid/+archive/ppa/+packages.
+. Click on 'Copy packages', or append `+copy-packages` to the end of your ppa url.
+. Select the +Published+ package.
+. Choose your intended distro version as the destination series. Then choose to 'copy existing binaries' for the "How the selected sources should be copied to the destination archive" part. 
+
+[NOTE]
+====================
+. The selection of 'copy existing binaries' seems to be counter-intuitive at first. So I chose 'Rebuild the copied sources' instead, which made more sense to me. Minutes later, I get an email titled "Launchpad error while copying a package", which says "same version already has published binaries in the destination archive".
+. As commented, it might not always work.
+====================
+
+
+[[scripted]]
+=== The scripted way
+
+*A script for supporting multiple Ubuntu releases in a PPA* +
+http://bobthegnome.blogspot.ca/2012/12/a-script-for-supporting-multiple-ubuntu.html
+
+THURSDAY, DECEMBER 27, 2012
+
+Something I find time consuming is uploading to a PPA when you want to support multiple Ubuntu releases. For my projects I generally want to support the most recent LTS release, the current stable release and the current development release (precise, quantal and raring when this was written).
+
+I have my program in a branch and release that with make distcheck and lp-project-upload. The packaging is stored in another branch.
+
+For each release I update the packaging with dch -i and add a new entry, e.g.
+
+-----------------------------------
+myproject (0.1.5-0ubuntu1) precise; urgency=low
+
+  * New upstream release:
+    - New exciting stuff
+
+ -- Me <me@canonical.com>  Thu, 27 Dec 2012 16:52:22 +1300
+-----------------------------------
+
+I then run release.sh and this generates three source packages and uploads them to the PPA:
+
+[source,shell]
+------------------------
+NAME=myproject
+PPA=ppa:myteam/myproject
+RELEASES="raring quantal precise"
+
+VERSION=`head -1 debian/changelog | grep -o '[0-9.]*' | head -1`
+ORIG_RELEASE=`head -1 debian/changelog | sed 's/.*) \(.*\);.*/\1/'`
+for RELEASE in $RELEASES ;
+do
+  cp debian/changelog debian/changelog.backup
+  sed -i "s/${ORIG_RELEASE}/${RELEASE}/;s/0ubuntu1/0ubuntu1~${RELEASE}1/" debian/changelog
+  bzr-buildpackage -S -- -sa
+  dput ${PPA} ../${NAME}_${VERSION}-0ubuntu1~${RELEASE}1_source.changes
+  mv debian/changelog.backup debian/changelog
+done
+------------------------
+
+Hope this is useful for someone!
+
+Note I don't use https://help.launchpad.net/Packaging/SourceBuilds[source recipes] as I want just a single package uploaded for each release.
+
+[[official]]
+==== The official way
+
+*Anonymous* 3 months ago
+
+You could use backportpackage to distribute one source package to multiple Ubuntu releases in one PPA. +
+http://manpages.ubuntu.com/manpages/precise/en/man1/backportpackage.1.html
+
