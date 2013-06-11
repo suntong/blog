@@ -1,0 +1,42 @@
+= How I blog
+
+:blogpost-categories: Debian,Ubuntu,searching,glimpse,text,asciidoc,blog,blogpost
+
+I'm the kind of guy who prefer pure text and reluctant to spend even a second more on decorating up my texts. I would give up blogging entirely if even a small portion of my time is spent inside the html file on their markups. I don't hate working with HTML, just that, as it says, _"if your tool is in the way of your documentation, then you've chosen the wrong tool"_.
+
+Also, recently I blogged about http://sfxpt.wordpress.com/2013/06/01/glimpse-the-best-personal-search-engine/[using glimpse as my personal search engine]. I mention it because it is part of the "solution" of my documentation -- The not-so-secret about my working in plain text and can still have a blog that is not that dull is, http://asciidoc.org/[asciidoc]. 
+
+pass::[<!--more-->]
+
+Yes, all my documents are in plain text, and they are in +asciidoc+ format, including my blogs. The advantages are:
+
+- I can use http://asciidoc.org/#_blogpost_weblog_client[blogpost] from +asciidoc+ to post my blogs to wordpress. 
+- If I forget if I ever documented something, or where I file them, +glimpse+ can help me find them in a split of second.
+
+Moreover, the other not-so-secret about my blogs is that I publish their source in github. For example, here is the http://github.com/suntong001/blog/blob/master/Glimpse.adoc[source code of my +glimpse+ blog]. As you can see, the +asciidoc+ source text presents rather well within github. 
+
+[TIP]
+====================
+- Use asciidoc to document
+- Use glimpse to search the documents
+- Use blogpost.py to post the blog to wordpress
+- Save a copy of the blog/document to github, which presents rather well in source
+- To view the real pure text in github, click on the "Raw" button
+====================
+
+Here is how my code post would look like:
+
+[source,ruby]
+----
+require 'sinatra' <1>
+
+get '/hi' do      <2>
+  "Hello World!"  <3>
+end
+----
+<1> Library import
+<2> URL mapping
+<3> Content for response
+
+Cheers
+

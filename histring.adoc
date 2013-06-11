@@ -1,0 +1,76 @@
+= histring
+
+:blogpost-categories: Debian,Ubuntu,grep,highlight,histring,text tool
+
+
+== NAME
+
+histring - highlight strings using ANSI terminal escape sequences
+
+== SYNOPSIS
+
+  histring [ options ] <pattern> [file]...
+
+== DESCRIPTION
+
+This manual page documents briefly the histring command.
+
+histring  is  a  program  that  highlights  strings using ANSI terminal
+escape codes.
+
+== OPTIONS
+
+histring supports the following options:
+
+       --help Show summary of options.
+
+       --version
+              Show version of program.
+
+       -c, --color <name|number>
+              Color to highlight in.
+
+       -s, --style <name>
+              Style to apply to highlight, if any styles  are  used  then  the
+              color will not be implicitly bolded, you must bold it your self.
+
+       -E, --extended
+              Use extended regular expressions.
+
+       -f, --force
+              Force hilighting even if stdout is not a tty.
+
+       -i, --ignore-case
+              Ignore case distinctions.
+
+       --debug
+              Print debugging info.
+
+       --credits
+              Print the credits and exit.
+
+== USAGE EXAMPLES
+
+Highlight  warnings and errors when testing the integrity of zipfiles:
+
+       zip -T *.zip 2>&1 | histring -fEi 'warning |bad CRC|error: '
+
+Highlight interesting stuff from diff output:
+
+       hg diff | histring -fE '^Comparing files .*|^diff  .*'  |  histring  -c
+       yellow -fE '^-.*' | histring -c green -fE '^+.*'
+
+
+== SEE ALSO
+
+http://man.cx/glark[glark(1)].
+
+Also, my blog about http://sfxpt.wordpress.com/2013/06/02/highlighting-strings-in-text-output-with-histring/[histring versatile usage examples].
+
+== AUTHOR
+
+histring was written by Angus Mackay <amackay@gusnet.cx>.
+
+This  manual page was written by Michael Prokop <mika@grml.org> for the
+grml project (but may be used by others).
+

@@ -8,7 +8,7 @@ Recently there was an article on this site [debian-administration.org] discussin
 
 If you like to work in console more than X, and like text tools more than GUI ones then +histring+ is definitely a tool for you!
 
-+histring+ simply highlights strings using ANSI terminal escape codes. It is extremely small and lighting fast. I almost use it everywhere in my script where I need a quick peek into large output. Moreover, you almost don't need to learn it, as its syntax is almost identical to grep. The following examples will turn you into a histring-pro in just minutes.
+http://sfxpt.wordpress.com/histring/[+histring+] simply highlights strings using ANSI terminal escape codes. It is extremely small and lighting fast. I almost use it everywhere in my script where I need a quick peek into large output. Moreover, you almost don't need to learn it, as its syntax is almost identical to grep. The following examples will turn you into a histring-pro in just minutes.
 
 pass::[<!--more-->]
 

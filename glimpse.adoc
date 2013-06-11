@@ -1,0 +1,18 @@
+= glimpse
+
+:blogpost-categories: Debian,Ubuntu,searching,search engine,glimpse,agrep
+
+[quote, http://dl.acm.org/citation.cfm?id=1267078]
+________________________
+GLIMPSE, which stands for GLobal IMPlicit SEarch, provides indexing and query schemes for file systems. The novelty of glimpse is that it uses a very small index - in most cases 2-4% of the size of the text - and still allows very flexible full-text retrieval including Boolean queries, approximate matching (i.e., allowing misspelling), and even searching for regular expressions. In a sense, glimpse extends agrep to entire file systems, while preserving most of its functionality and simplicity. Query times are typically slower than with inverted indexes, but they are still fast enough for many applications. For example, it took 5 seconds of CPU time to find all 19 occurrences of Usenix AND Winter in a file system containing 69MB of text spanning 4300 files. Glimpse is particularly designed for personal information, such as one's own file system. The main characteristic of personal information is that it is non-uniform and includes many types of documents. An information retrieval system for personal information should support many types of queries, flexible interaction, low overhead, and customization, All these are important features of glimpse.
+________________________
+
+[quote, http://en.wikipedia.org/wiki/GLIMPSE]
+________________________
+GLIMPSE uses and takes a great deal of inspiration from Agrep, which was also developed at the University of Arizona, but GLIMPSE uses a high level index whereas Agrep parses all the text each time.
+
+The original Glimpse paper (PDF, http://webglimpse.net/pubs/glimpse.pdf[glimpse.pdf])
+________________________
+
+Also, check out my blog about http://sfxpt.wordpress.com/2013/06/01/glimpse-the-best-personal-search-engine/[why I us glimpse as my personal search engine].
+
