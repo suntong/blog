@@ -1,0 +1,174 @@
+
+= libpam-ssh-agent-auth
+
+*Using libpam-ssh-agent-auth for sudo authentication*
+
+== The problem
+
++sudo+, is a mechanism for unprivileged user to gain privileged accesses. It’s much better than giving out root password to allow users to do +su+, but still requires trade off between security and convenience: 
+
+- On some personal systems like Ubuntu, it is so configured that normal user can use +sudo+ for any command without specifying their passwords. It’s very convenient, but serious system administrators will shake their heads when asked to put the same mechanism within their systems. 
+- That’s why for security reasons, normal *nix system will enforce that the +sudo+ users to key in their passwords each time they use +sudo+. This is secure however inconvenient. 
+
+== The answer 
+
+That’s the trade-off/dilemma of using +sudo+. Are there other mechanisms to make sure the +sudo+ users are actually who they are, yet they don’t need to key in their passwords each time they use +sudo+? Using +libpam-ssh-agent-auth+ for sudo authentication is the answer:
+
+- If the logged in user want to use the SSH agent to authenticate their +sudo+ requests each time, they have to enter the SSH key phrase that is registered within the system beforehand. 
+- After the one-time authentication, each time they make their +sudo+ requests, the SSH agent will authenticate the +sudo+ requests on their behalf. I.e., they don’t need to key in their passwords each time any more.
+- If the user haven’t provided their registered SSH key phrase to SSH agent yet, their +sudo+ requests will go through the normal routine, and they need to key in their passwords each time they use +sudo+.  
+
+With +libpam-ssh-agent-auth+, the users have full control, and it is completely up to them how they like to authenticate their +sudo+ requests. They can choose either secure or convenient as their options. 
+
+== The bonus 
+
+If you want to transfer system files including those that belong to root between differents systems as a normal unprivileged user, using the +libpam-ssh-agent-auth+ package will make it very convenient because you only need to maintain a single ssh identity, i.e., no separated normal user ssh key and root user ssh key [1]. Moreover, If you want to transfer files that belong to other users (say the web account) between differents systems, using the +libpam-ssh-agent-auth+ package will be the only option [2]. 
+
+[1] http://superuser.com/questions/605425/rsync-root-files-between-systems-without-specifying-password +
+[2] http://serverfault.com/questions/107187/sudo-su-username-while-keeping-ssh-key-forwarding
+
+== The details 
+
+The following content are mainly copied from the following blog by david@evans.io
+
+*Using SSH agent for sudo authentication* +
+http://www.evans.io/posts/ssh-agent-for-sudo-authentication/
+
+with modifications to reflect the updated situations. 
+
+== Using SSH agent for sudo authentication
+
+_libpam-ssh-agent-auth_ is a PAM module which allows you to use your SSH keys to authenticate for sudo. If you aren’t happy using completely passwordless sudo but don’t want to be typing passwords all the time this module provides a compromise.
+
+=== Install
+
+Install this Debian/Ubuntu package the normal way you install other packages. 
+
+Ref:
+
+http://sfxpt.wordpress.com/libpam-ssh-agent-auth/ +
+https://launchpad.net/~suntong001/+archive/ppa
+
+=== Configure
+
+[NOTE]
+At this point, it would be wise to open another terminal and +sudo -s+ to root. Otherwise, if you balls up your sudo/PAM config you won't be able to get sufficient privileges to fix it, whereupon there will be wailing and gnashing of teeth.
+
+==== Setup authorized keys
+
+We need to make three changes. First, copy your +authorized_keys+ file into +/etc/ssh/sudo_authorized_keys+:
+
+ sudo cp ~/.ssh/authorized_keys /etc/ssh/sudo_authorized_keys
+
+If cp gives the error “cannot stat ~/.ssh/authorized_keys: No such file or directory”, try the following, because you’ve never ssh into your own box yourself before:
+
+ cat ~/.ssh/id_*.pub | sudo tee /etc/ssh/sudo_authorized_keys
+
+If there are other users who you want to be able to sudo using this mechanism you’ll need to append their authorized_keys to this file as well. It’s important that this file only be writable by root to prevent users just writing their own keys into this file and then using those to authenticate against.
+
+==== Change sudoers settings
+
+Secondly, ensure that sudo passes on the SSH_AUTH_SOCK environment variable so PAM knows how to talk to your key agent. Edit your sudoers file (use visudo for this, it will stop you doing anything stupid) and add the following line:
+
+ Defaults env_keep += SSH_AUTH_SOCK
+
+If your Debian is of version 1.7.2p1-1 and later (hint: having the +/etc/sudoers.d/README+ file), you can do the following instead:
+
+ echo "Defaults env_keep += SSH_AUTH_SOCK" | sudo tee /etc/sudoers.d/00_SSH_AUTH_OK
+ sudo chmod 0440 /etc/sudoers.d/00_SSH_AUTH_OK
+
+==== Make use of the module
+
+
+Thirdly, we tell PAM to use this particular module to authenticate for sudo. To do this, edit +/etc/pam.d/sudo+ and add the line beginning +auth+ (the order of these lines is significant):
+
+-----------------------
+
+#%PAM-1.0
+
+auth [success=2 default=ignore] pam_ssh_agent_auth.so file=/etc/ssh/sudo_authorized_keys
+@include common-auth
+@include common-account
+
+session required pam_permit.so
+session required pam_limits.so
+-----------------------
+
+
+We’re configuring the module as follows:
+
+ success=2
+
+On a successful authentication, skip the next two config lines i.e., don’t attempt the normal authentication mechanisms.
+
+ default=ignore
+
+If anything else happens, carry on as normal so if your key isn’t available or the module breaks for any reason you can still sudo using your password.
+
+ file=/etc/ssh/sudo_authorized_keys
+
+The file where the keys which grant sudo rights are stored.
+
+Here is another example, on my Ubuntu Saucy, the +/etc/pam.d/sudo+ file was:
+
+------------------------------------
+#%PAM-1.0
+
+auth       required   pam_env.so readenv=1 user_readenv=0
+auth       required   pam_env.so readenv=1 envfile=/etc/default/locale user_readenv=0
+@include common-auth
+@include common-account
+@include common-session-noninteractive
+------------------------------------
+
+After applying the above required changes, it looks like this:
+
+
+------------------------------------
+#%PAM-1.0
+
+auth       required   pam_env.so readenv=1 user_readenv=0
+auth       required   pam_env.so readenv=1 envfile=/etc/default/locale user_readenv=0
+auth [success=3 default=ignore] pam_ssh_agent_auth.so file=/etc/ssh/sudo_authorized_keys
+@include common-auth
+@include common-account
+@include common-session-noninteractive
+
+session required pam_permit.so
+session required pam_limits.so
+------------------------------------
+
+For more details, refer to the following documentation (also try +man pam_ssh_agent_auth+)
+
+*PAM*::
+http://www.kernel.org/pub/linux/libs/pam/Linux-PAM-html/sag-configuration-file.html
+
+*pam-ssh-agent-auth*::
+http://pamsshagentauth.sourceforge.net/
+
+==== The patch files
+
+I'm trying to automate the configuration as much as possible for you and have 
+created patch files for +/etc/sudoers+, and +/etc/pam.d/sudo+:
+
+*/etc/sudoers*::
+ http://paste.debian.net/12646/
+*/etc/pam.d/sudo*:: 
+ http://paste.debian.net/12647/
+
+
+=== Test and debug
+
+Test by using +sudo -K+ to force reauthentication:
+
+ sudo -K
+ sudo whoami
+
+You should get the response ‘root’ without being prompted for your password. If not, check that your SSH_AUTH_SOCK is set and being correctly passed through by sudo:
+
+ printenv | grep SSH
+ sudo printenv | grep SSH
+
+You can also add +debug+ to the end of the +auth+ line in +pam.d/sudo+ and get more detailed information logged to +/var/log/auth.log+
+
+

@@ -1,0 +1,10 @@
+= Using the launchpad package recipes
+
+:blogpost-categories: Ubuntu,Package Building,Bazaar,bzr-builder
+
+To build something from source, using launchpad package recipes might be the easiest way to achieve it. There is an official wiki https://help.launchpad.net/Packaging/SourceBuilds/GettingStarted[get started with your own source package recipes] to help, but I found it not enough for me to understand it, maybe because I have zero previous knowledge of Bazaar, or launchpad package recipes, or the Launchpad daily builds. 
+
+So I pull everything together on https://docs.google.com/document/d/1EF00WOh3Ba80b6wW84m28wZD67blo56DucK3MYEOi1Q/edit?usp=sharing[using the launchpad package recipes], and enrich it with my real life example of making use of an exiting recipe, and make it of my own. 
+
+Enjoy. 
+

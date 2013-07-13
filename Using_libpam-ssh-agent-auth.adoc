@@ -1,0 +1,12 @@
+= Using libpam-ssh-agent-auth for sudo authentication
+
+:blogpost-categories: Debian,Ubuntu,ssh,pam,authentication,sodu
+
++sudo+, is a mechanism for unprivileged user to gain privileged accesses. It’s much better than giving out root password to allow users to do +su+, but still requires trade off between security and convenience: 
+
+- On some personal systems like Ubuntu, it is so configured that normal user can use +sudo+ for any command without specifying their passwords. It’s very convenient, but serious system administrators will shake their heads when asked to put the same mechanism within their systems. 
+- That’s why for security reasons, normal *nix system will enforce that the +sudo+ users to key in their passwords each time they use +sudo+. This is secure however inconvenient. 
+
+That’s the trade-off/dilemma of using +sudo+. Are there other mechanisms to make sure the +sudo+ users are actually who they are, yet they don’t need to key in their passwords each time they use +sudo+?
+
+Read on at http://sfxpt.wordpress.com/libpam-ssh-agent-auth/
