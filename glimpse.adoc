@@ -10,9 +10,30 @@ ________________________
 [quote, http://en.wikipedia.org/wiki/GLIMPSE]
 ________________________
 GLIMPSE uses and takes a great deal of inspiration from Agrep, which was also developed at the University of Arizona, but GLIMPSE uses a high level index whereas Agrep parses all the text each time.
-
-The original Glimpse paper (PDF, http://webglimpse.net/pubs/glimpse.pdf[glimpse.pdf])
 ________________________
+
+
+[quote, The original Glimpse paper, http://webglimpse.net/pubs/glimpse.pdf]
+________________________
+- Strengths
+1. Very small index.
+2. Approximate matching is supported.
+3. Fast index construction.
+4. No need to define document boundaries ahead of time. It can be done at query time.
+5. Easy to customize to user preferences.
+6. Easy to adapt to a parallel computer (different blocks can be searched by different processors).
+7. Easy to modify the index due to its small size. Therefore, dynamic texts can be supported.
+8. No need to extract stems. Subword queries are supported automatically (even subwords that appear in the
+  middle of words).
+9. Queries with wildcards, classes of characters, and even regular expressions are supported.
+- Weaknesses
+1. Slower compared to inverted indexes for some queries. Not suitable for applications where speed is the
+  predominant concern.
+2. Too slow, at this stage (but we’re working on it), for very large texts (more than 500MB).
+3. Boolean queries containing common words are slow.
+________________________
+
+
 
 Also, check out my blog about http://sfxpt.wordpress.com/2013/06/01/glimpse-the-best-personal-search-engine/[why I us glimpse as my personal search engine].
 

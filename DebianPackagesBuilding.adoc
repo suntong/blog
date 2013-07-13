@@ -29,7 +29,9 @@ Now I'm planning to do it with a different approach. In stead of starting backgr
 So I found the glimpse dsc file at +
 ftp://ftp.cstone.net/debian/pool/non-free/g/glimpse/glimpse_4.18.5-1.dsc
 
-Can anyone explain me in simple commands how I can build and test upload this glimpse package, in as few steps as possible please? Because proper commands always speaks for themselves. You have to have a decent knowledge about a language before you can write something elegant and useful, from start to the end, but it'll be much simpler if you can copy from something similar, which is well-commented and proven-to-work code, and go from there.
+*Can anyone explain me in simple commands how I can build and test upload this glimpse package, in as few steps as possible please?* Because proper commands always speaks for themselves. _You have to have a decent knowledge about a language before you can write something elegant and useful, from start to the end, but it'll be much simpler if you can copy from something similar, which is well-commented and proven-to-work, then go from there_.
+
+That is my question and goal, and the following are various answers. 
 
 == Using dpkg-buildpackage
 
@@ -113,6 +115,17 @@ I can teach you how to make a package (just 5 minutes)
 8. sudo debi
 ____________
 
+[NOTE]
+====================
+UPDATES: Besides using the (undocumented) pbuilder-satisfydepends, the +dpkg-checkbuilddeps+ will help check what's missing and +apt-get build-dep <foo>+ will install those dependencies for you. However, there is a catch, it only works if +<foo>+ is an existing Debian package. To work with the source tree in your working directory, install +devscripts+ and execute +mk-build-deps+ from within the source directory for the package (so it can find debian/control). Check the mk-build-deps manpage if you want to point it at a specific rules file etc.
+
+[quote, jmtd, http://ask.debian.net/questions/how-to-install-a-package-s-build-dependencies]
+____________
+It will generate a .deb file within the current working directory. Install it via sudo dpkg -i, and you will get errors about failed dependencies. However, you can then start up aptitude and resolve them. The advantage of this is the dependencies are marked as “auto”, so they may be auto-removed in the future if you uninstall the dependencies package.
+
+Alternatively install the .deb with gdebi, which does dependency resolution, but I am not sure that it marks dependencies as auto-installed.
+____________
+====================
 
 == Git based
 
@@ -123,6 +136,12 @@ Something I always check in similar situations is if the package is available at
 
 Robert J. Clay @gmail.com +
 23 May 2013
+
+== Conclusion
+
+The above are several ways to build a source package so that it is ready for upload, using different methods/tools. 
+
+Also check out the following official Debian packaging tutorial; And also as a reference, here are the notes I collected when I was http://sfxpt.wordpress.com/2013/05/26/learning-debianubuntu-packaging/[learning Debian/Ubuntu packaging].
 
 [[tutorial]]
 == Debian packaging tutorial
