@@ -1,0 +1,163 @@
+= Docker Installation
+
+:blogpost-categories: Debian,Ubuntu,Docker,LXC,virtualization,containerization
+
+The +Docker+ is so new and constantly changing that even its official installation guide page for Ubuntu, http://docs.docker.io/en/latest/installation/ubuntulinux/, is not the simplest method. It's not complicated at all, just that there are more simple ways out there that are not officially documented. So,
+
+If you want to install Docker for Ubuntu, the easiest way is:
+
+pass::[<!--more-->]
+
+== Docker installation for Ubuntu
+
+[source,shell]
+-------------------------
+# Install the cgroup dependency to avoid hassle later
+sudo apt-get install cgroup-lite
+
+#Add the PPA sources to your apt sources list.
+sudo apt-get install python-software-properties && sudo add-apt-repository ppa:dotcloud/lxc-docker
+
+# Update your sources
+sudo apt-get update
+
+# Install, you will see another warning that the package cannot be authenticated. Confirm install.
+sudo apt-get install lxc-docker
+-------------------------
+
+NB, most installation guides hinted that cgroup is necessary but didn't put it in the installation steps. If you don't have cgroup pre-installed, you will get the following at the end of lxc-docker installation:
+
+-------------------------
+lxc-start: Error setting devices.deny to a for lxc/db597c3bd13b089294814d19fc0908bfa1ad15fbd2cb133d2d730912e9a47635
+
+lxc-start: failed to setup the cgroups for 'db597c3bd13b089294814d19fc0908bfa1ad15fbd2cb133d2d730912e9a47635'
+lxc-start: failed to spawn 'db597c3bd13b089294814d19fc0908bfa1ad15fbd2cb133d2d730912e9a47635'
+-------------------------
+
+Some side notes, 
+
+- I first attempted to install Docker under Ubuntu 13.10, but get some strange errors, then I installed Docker under Ubuntu 13.04, which is the one used by Docker developers, and it went flawless.
+- Docker only support 64bit machines, and won't install under 32bit hosts.
+
+== Docker installation for other distros
+
+Docker installation for other distros can be as simple as:
+
+ curl -sL https://get.docker.io/ | sh
+
+Of course, you'd better have the cgroup pre-installed as well. 
+
+This was actually what I did for my Ubuntu installation, because I was not aware of the above simpler method by then. It uses the following apt source, instead of the above PPA:
+
+  deb https://get.docker.io/ubuntu docker main
+
+== Test the Docker installation
+
+Now we have Docker successfully installed, it's time to do some testing:
+
+[source,shell]
+-------------------------
+# Verify the daemon is running and you can connect to it. 
+# If you see which version is running you know you are all set.
+$ docker version
+Client version: 0.5.3
+Server version: 0.5.3
+Go version: go1.1
+
+$ docker ps
+ID                  IMAGE               COMMAND                CREATED             STATUS
+         PORTS
+
+$ docker images 
+REPOSITORY          TAG                 ID                  CREATED             SIZE
+busybox             latest              e9aa60c60128        7 months ago        6.825 MB (virtual 6.825 MB)
+
+$ docker run busybox echo "Docker has been successfully installed"
+Docker has been successfully installed
+
+# To use a container image from someone else, find them online at index.docker.io, or by using:
+$ docker search ubuntu
+Found 22 results matching your query ("ubuntu")
+NAME                DESCRIPTION
+shykes/ubuntu
+base                Another general use Ubuntu base image. Tag...
+ubuntu              General use Ubuntu base image. Tags availa...
+boxcar/raring       Ubuntu Raring 13.04 suitable for testing v...
+dhrp/ubuntu
+creack/ubuntu       Tags:
+12.04-ssh,
+12.10-ssh,
+12.10-ssh-l...
+crohr/ubuntu              Ubuntu base images. Only lucid (10.04) for...
+knewton/ubuntu
+pallet/ubuntu2
+erikh/ubuntu
+. . . 
+
+# To download container images
+$ docker pull learn/tutorial
+Pulling repository learn/tutorial from https://index.docker.io/v1
+Pulling image 8dbd9e392a964056420e5d58ca5cc376ef18e2de93b5cc90e868a1bbc8318c1c (precise) from 
+ubuntu
+Pulling image b750fe79269d2ec9a3c593ef05b4332b1d1a02a62b4accb2c21d589ff2f5f2dc (12.10) from ub
+untu
+Pulling image 27cf784147099545 () from tutorial
+# -- Docker has downloaded a number of layers. In Docker all images (except the base image) are made up of several cumulative layers.
+
+# install a simple program (ping) in the container. 
+$ docker run learn/tutorial apt-get install -y ping
+Reading package lists...
+Building dependency tree...
+The following NEW packages will be installed:
+  iputils-ping
+0 upgraded, 1 newly installed, 0 to remove and 0 not upgraded.
+Need to get 56.1 kB of archives.
+After this operation, 143 kB of additional disk space will be used.
+Get:1 http://archive.ubuntu.com/ubuntu/ precise/main iputils-ping amd64 3:20101006-1ubuntu1 [5
+6.1 kB]
+debconf: delaying package configuration, since apt-utils is not installed
+Fetched 56.1 kB in 1s (50.3 kB/s)
+Selecting previously unselected package iputils-ping.
+(Reading database ... 7545 files and directories currently installed.)
+Unpacking iputils-ping (from .../iputils-ping_3%3a20101006-1ubuntu1_amd64.deb) ...
+Setting up iputils-ping (3:20101006-1ubuntu1) ...
+# -- Note that even though the container stops right after a command completes, the changes are not forgotten.
+# -- Your changes to the filesystem have been kept, but are not yet saved.
+
+# To save the changes, find the ID of the container you just created first
+$ docker ps -l 
+ID                  IMAGE               COMMAND                CREATED             STATUS     
+         PORTS
+6982a9948422        ubuntu:12.04        apt-get install ping   1 minute ago        Exit 0
+
+$ docker commit 698 learn/ping
+effb66b31edb
+# -- Docker has returned a new ID. This id is the image id.
+
+-------------------------
+
+Once you start a process in Docker from an Image, Docker fetches the image and its Parent Image, and repeats the process until it reaches the Base Image. Then the Union File System adds a read-write layer on top. That read-write layer, plus the information about its Parent Image and some additional information like its unique id, networking configuration, and resource limits is called a container. +
+(From http://docs.docker.io/en/latest/terms/container/)
+
+image:http://docs.docker.io/en/latest/_images/docker-filesystems-busyboxrw.png[Docker container]
+
+[[refs]]
+== References
+
+Getting Started with Docker +
+http://www.docker.io/gettingstarted/
+ +
+
+Official Docker Installation Guide for Ubuntu +
+http://docs.docker.io/en/latest/installation/ubuntulinux/
+ +
+
+DOCKER DESKTOP: YOUR DESKTOP OVER SSH RUNNING INSIDE OF A DOCKER CONTAINER +
+http://blog.docker.io/2013/07/docker-desktop-your-desktop-over-ssh-running-inside-of-a-docker-container/
+ +
+
+Docker is to deployment as Git is to development +
+http://blog.scoutapp.com/articles/2013/08/28/docker-git-for-deployment
+
+Getting Started With Docker - Deploying ownCloud +
+http://dischord.org/blog/2013/07/10/docker-and-owncloud/
