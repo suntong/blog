@@ -1,0 +1,26 @@
+= package
+
+// blogpost.py -p post package.adoc
+
+[[dbab]]
+== dbab
+
+- http://sfxpt.wordpress.com/package/dbab/[What is dbab].
+- http://sfxpt.wordpress.com/2014/01/05/the-best-ad-blocking-method-in-a-package/[Why I think dbab is the best ad blocking method].
+
+[[glimpse]]
+== glimpse
+
+- http://sfxpt.wordpress.com/package/glimpse/[What is glimpse].
+- http://sfxpt.wordpress.com/2013/06/01/glimpse-the-best-personal-search-engine/[Why I us glimpse as my personal search engine].
+
+[[histring]]
+== histring
+
+- http://sfxpt.wordpress.com/package/histring/[What is histring].
+- http://sfxpt.wordpress.com/2013/06/02/highlighting-strings-in-text-output-with-histring/[histring versatile usage examples].
+
+[[libpam-ssh-agent-auth]]
+== libpam-ssh-agent-auth
+
+- http://sfxpt.wordpress.com/package/libpam-ssh-agent-auth/[What is libpam-ssh-agent-auth and how to use it].

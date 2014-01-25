@@ -1,0 +1,184 @@
+= The Best Ad Blocking Method in a Package
+
+:blogpost-categories: ad blocking,dnsmasq,web service,network virtual interface
+
+Now that I've http://sfxpt.wordpress.com/2013/11/30/dnsmasq-installation-configuration-5/[configured DNSmasq in my newly installed Linux], it's natural to revisit http://sfxpt.wordpress.com/2011/02/21/the-best-ad-blocking-method/[The Best Ad Blocking Method] again. The reason it took me so long to do so is because I'm doing it in an entirely new approach this time. 
+
+This time I'm armed with a lethal weapon, and the damage is fatal -- the time it takes for someone to setup the http://sfxpt.wordpress.com/2011/02/21/the-best-ad-blocking-method/[best ad blocking method] has been hatched down from the previously over an hour to just a few minutes this time -- because I've now packed the whole solution into a Debian package. I've requested for sponsor for it already, so hopefully it will come down from the pipe soon. 
+
+Here is the preview of how to use the package. It's called +dbab+, which stands for Dnsmasq-Based Ad-Blocking. 
+
+pass::[<!--more-->]
+
+- If you don't have a local web server on your local DNS server, then install +dbab+ and you are done. Everything should work out of the box for such situation. 
+- If you do have a local web server on your local DNS server, then after installing +dbab+, you need to add a second IP address to your +eth0+ using a virtual interface. See <<installation,below>>. 
+
+== Advantages
+
+First of all, let's recap why this is the best method for ad blocking. Over the years, I've been using +privoxy+ (which needs to overcome some hurdles every time I install it to work along with my +squid+ local http caching server), and +Adblock Plus+ (which is an-easy-to-install browser plugin). However, they all work more-or-less the same way, a pattern matching of all known ad urls is required. This will be CPU intensive because of the large quantity of them, and the use of regular expressions matching. Adblock Plus, the easiest choice, is actually the worst choice because it is JavaScript based, and is the slowest. Furthermore, all these method will more or less alter the rendered web page, to remove the ads. This will be even slower, and might cause side effects as well. 
+
+The +dbab+ is however, using an entirely different approach for ad blocking. It's advantages are:
+
+- *Work at the DNS level*. Leave the web pages intact, without any pattern matching, string substitution, and/or html elements replacing.
+- *Serve instantly*. All ads will be replaced by a +1x1+ pixel gif image served locally by the Pixelserv server.
+- *Maintenance free*. You don't need to maintain the list of ad sites yourself. The block list can be downloaded from pgl.yoyo.org periodically. If you don't like some of the entries there, you can define your local tweaking that filters them out.
+- *Easily customized*. It's trivial to add your own entries to the ad blocking list if the existing ones are not enough for you.
+
+[[installation]]
+== Installation
+
+Once +dbab+ is in the Debian repo, the installation will be so easy that what's important is not the installation but the verification. So, 
+
+. Go into your local DNS server.
+. Remove all existing ad blocking tools if you have any.
+. Stop your local web server temporarily if you have any.
+. Before installation +dbab+, go and visit some websites which have ads in their pages such as yahoo or anything, then
+. Install the +dbab+ Debian package
+. Now, visit those pages again in different tabs to see if the ads are removed :-)
+
+That shall be it if you don't have any local web server. Mission accomplished. 
+
+== Configure +dbab+ for local web server
+
+If you do have a local web server, you need to add a second IP address to your +eth0+ using a virtual interface. Else, You need to setup a dedicated local server for the Pixel server. I.e., there has to be a real IP for it, not a faked one. Otherwise, you'll get the following when starting Pixel server +dbab-pixelserv+:
+
+ error : cannot bind : Cannot assign requested address 
+
+You can add a second IP address to your DNSmasq server using a
+virtual interface, then have the +dbab-pixelserv+ service listen on that IP
+address. There are http://thread.gmane.org/gmane.linux.debian.user/400291/focus=400291[several ways to do it], the simplest way is to add the following lines to you +eth0+ interface:
+
+        post-up ip addr add dev eth0 192.168.2.101/24
+        pre-down ip addr del dev eth0 192.168.2.101/24
+
+Adjust according to your situation. FYI, here is the full list of my +eth0+ interface static IP setup for 
+my DNSmasq server:
+
+.File /etc/network/interfaces:
+---------------------------------------------------
+# Use static IP instead of dhcp
+iface eth0 inet static
+        address 192.168.2.100
+        network 192.168.2.0
+        netmask 255.255.255.0
+        broadcast 192.168.2.255
+        gateway 192.168.2.1
+        # add a 2nd ip address
+        post-up ip addr add dev eth0 192.168.2.101/24
+        pre-down ip addr del dev eth0 192.168.2.101/24
+---------------------------------------------------
+
+Once done, do the following as root
+
+  ifdown eth0
+  ifup eth0
+
+Then you should have your second IP address now. NB, you can't verify it with +ifconfig+:
+
+---------------------------------------------------
+$ ifconfig -a
+eth0      Link encap:Ethernet  HWaddr 00:e0:xx:xx:xx:ef  
+          inet addr:192.168.2.100  Bcast:192.168.2.255  Mask:255.255.255.0
+          inet6 addr: fe80::xxx:xxx:xxx:98ef/64 Scope:Link
+          UP BROADCAST RUNNING MULTICAST  MTU:1500  Metric:1
+          RX packets:734377 errors:0 dropped:36 overruns:0 frame:0
+          TX packets:659705 errors:0 dropped:0 overruns:0 carrier:0
+          collisions:0 txqueuelen:1000 
+          RX bytes:505414634 (505.4 MB)  TX bytes:178175449 (178.1 MB)
+
+lo        Link encap:Local Loopback  
+	  . . .
+---------------------------------------------------
+
+But you can verify it with +ip+:
+
+---------------------------------------------------
+ip addr
+1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN 
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+    inet 127.0.0.1/8 scope host lo
+       valid_lft forever preferred_lft forever
+    inet6 ::1/128 scope host 
+       valid_lft forever preferred_lft forever
+2: eth0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc pfifo_fast state UP qlen 1000
+    link/ether 00:e0:xx:xx:xx:ef brd ff:ff:ff:ff:ff:ff
+    inet 192.168.2.100/24 brd 192.168.2.255 scope global eth0
+       valid_lft forever preferred_lft forever
+    inet 192.168.2.101/24 scope global secondary eth0
+       valid_lft forever preferred_lft forever
+    inet6 fe80::xxx:xxx:xxx:98ef/64 scope link 
+       valid_lft forever preferred_lft forever
+---------------------------------------------------
+
+Once we have our second IP address, the reset is simple:
+
+. stop dbab-pixelserv server
+. change the IP address that dbab uses to the second IP address
+. start dbab-pixelserv server
+. start your local web server again if you have any
+
+Do the following as root
+
+[source,shell]
+--------------------------------------
+# stop dbab-pixelserv server
+/etc/init.d/dbab-service stop
+
+# change the IP address that dbab-pixelserv listens on
+echo 192.168.2.101 > /etc/dbab.addr
+
+# update ad blocking list with the second IP address
+/usr/sbin/dbab-get-list
+/usr/sbin/dbab-add-list
+/etc/init.d/dnsmasq restart
+
+# start dbab-pixelserv server
+/etc/init.d/dbab-service start
+--------------------------------------
+
+That's it. We're done. 
+
+== Bonus, rubbish sites blocking
+
+One thing that I am very annoyed is that the top of google hits are often crammed with rubbish sites. I.e., those sites that contains nothing but key words merely so as to be shown on top of google hits.
+
+These sites are called content-farming sites, and goolge has been fighting with them all the time. E.g., Google's Farmer Update at the end of February, 2011:
+
+"So-called content farms such as Demand Media and Associated Content, both routinely vilified for churning out shabbily produced, keyword-loaded content that often secured top listings at Google, were penalized severely." [1]
+
+[1] http://www.websitemagazine.com/content/blogs/posts/pages/crop-devastation-google-s-farmer-update-retools-rankings.aspx
+
+But still, there are still content-farming sites that fall through the crack or revamp again. So instead of waiting for google to deal with them again, here is how to take the matter within our own hand.
+
+First, gather a list of those rubish sites, and list them in +/etc/dbab.list++. The result will look something like this:
+
+  $ cat /etc/dbab.list+
+  www.dl4all.com
+  torrent.dl4all.com
+  www.filestube.com
+  www.terapdf.com
+
+Then, convert the list so as to be used by DNSmasq:
+
+  /usr/sbin/dbab-add-list
+
+The result will look something like this:
+
+  $ cat /etc/dnsmasq.d/dnsmasq.trashsites.conf
+  address=/www.dl4all.com/192.168.2.101
+  address=/torrent.dl4all.com/192.168.2.101
+  address=/www.filestube.com/192.168.2.101
+  address=/www.terapdf.com/192.168.2.101
+
+Now, block them using DNSmasq:
+
+  /etc/init.d/dnsmasq restart
+
+That's it. Next time if you accidentally click into those sites,
+You will see a blank page, which loads instantly, with the
+following as the page title:
+
+ (GIF Image, 1x1 pixels)
+
+Then you know you've stumbled into sites that you should have avoided.
+

@@ -1,0 +1,39 @@
+= Debian/Ubuntu Package Developing with Docker
+
+:blogpost-categories: Debian,Ubuntu,Package Building,Docker
+
+I found that Docker is the best tool for developing Debian/Ubuntu packages. If you build your packages with +pbuilder+, then you will love Docker, because it is using the same concept, but is much more controllable, and it gives you much more freedom. 
+
+pass::[<!--more-->]
+
+Docker uses the same concept of +pbuilder+, which gives you an isolated pure & pristine environment to build packages. The reason that I think Docker is the best tool for *developing* Debian/Ubuntu packages is that, suppose you find some minor problems when building a package and you want to fix it, then +pbuilder+ is not a good help here. Sure you can go all the nine yards building from the pure & pristine environment every time you make a tiny change, but it would not be ideal, because when we do quick fixes and tests, the DRY (Do-not Repeat Yourself) principle will be more important -- the rebuilds for the quick fixes and tests should not do more than a make do. I.e., only build things that need to be built, and do not waste a single second on compiling something do not need to be compiled again, let alone starting from package downloading and installing. However, when the quick fixes and tests are done, we do need the ability to backtrack all the way to test installation from a bare-minimum system. This is where Docker comes shining. 
+
+The concept of Docker is far superior than +pbuilder+ in that, it allows you to build layers on top of each other, while giving you the freedom to play in any layer at any given time. The best part is that you can discard your changes you made to the layer at your will. So that you can always go back to the pristine stage of your layer and start over again. Let's put that concept into Debian packages developing. 
+
+. The first layer would be the bare-minimum installed system that contains not much more packages than a net-install or deb-bootstrap. We will be using this layer to test our final package installation, to verify that the package install well on a bare-minimum system.
+. The second layer would be the one that contains our package's dependants. We will be using this layer to test if our built package runs fine. 
+. The third layer would have our package's build dependants installed. We can always do a fresh build from here without downloading and installing any dependant  packages. 
+. The forth layer would contains our package's build caches. I.e., if I want to do a quick fixes and tests, I do not need to do more than a make will do. No need to compile something that does not need to be compiled again, and definitely no need to start from `configure` again. 
+. The best part is that if you are maintaining several packages, you can share the aforementioned layers between your packages if possible. This will be a big saver for both space and time. Even if some packages have some unique dependants that you think it is better not to use a shared environment, it can still save a huge amount of disk space because you can base it on a similar existing layer.
+. Sounds too good to be true? Well, here is more -- the Docker layers can be defined in Docker files. The Docker files are easy to understand and easy to write. Once written, your pristine Docker environments will always be one command away. It doesn't take long to finish, and your Docker isolated environment can starts in seconds.
+. Moreover, if you find a bug but someone/upstream say he can't duplicate it, all you need to do is to give him your Docker file. The Docker was meant for a reliable deploy system originally after all. 
+
+Sound very charming to me. What do you think? 
+Please comment or share your insights. 
+
+Thanks
+
+PS. For more information on Docker, check these out:
+
+
+About Docker +
+http://sfxpt.wordpress.com/2013/11/02/docker-installation/#refs
+
+Docker Intro & Installation +
+https://docs.google.com/document/d/1IDdp1y0oAkDwIXSg4_l3TjNFBPps7MotCAmMywEV4Lc/edit
+
+Docker Image Building +
+https://docs.google.com/document/d/1f8iflnFSZxAU9FhoLQPEVlSKhVPXbtCaqTVPTTJb9yo/edit
+
+Docker Advanced Volumes +
+https://docs.google.com/document/d/1tgzbbc76tV82nxJCpHTSb-Y5tns8Uim8sLDExy12e5k/edit

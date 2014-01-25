@@ -1,0 +1,44 @@
+= Docker Image Amending
+
+:blogpost-categories: Docker
+
+Memo to myself, how to amend an existing Docker image. +
+Although it was already covered in my http://sfxpt.wordpress.com/2013/11/02/docker-installation/[docker installation] post, it was not clear and prominent. 
+
+[source,shell]
+-------------------------
+# update a docker image (by apt-get update)
+$ sudo docker run -i -t sfxpt/DevEnv:sid apt-get update
+
+# check the result
+$ sudo docker ps -l
+ID                  IMAGE               COMMAND             CREATED             STATUS              PORTS               NAMES
+005b170ced17        sfxpt/DevEnv:sid    apt-get update      32 seconds ago      Exit 0                    cyan_fish           
+
+# commit the change,
+$ sudo docker commit 005b170ced17 sfxpt/DevEnv sid
+506b3f5e35ff
+
+# verify the result
+$ sudo docker images 
+REPOSITORY             TAG                 ID                  CREATED             SIZE
+sfxpt/DevEnv           sid                 506b3f5e35ff        7 seconds ago    
+-------------------------
+
+[NOTE]
+======================
+- Note how the 'sfxpt/DevEnv:sid' docker tag is used under docker +commit+ command.
+- You can omit the +tag+ part, or the +image+ part altogether. The result is
+  as expected, committed to the base image, or un-tagged image.
+- As shown in my http://sfxpt.wordpress.com/2013/11/02/docker-installation/[docker installation] post, you can abbreviate the docker ID, to as short as the first 3 letters.
+======================
+
+You can apply the above steps as many times as you want. E.g., to install 
+further packages after updating the apt:
+
+ sudo docker run -i -tsfxpt/DevEnv:sid  apt-get install -y gnupg-agent 
+ sudo docker ps -l
+ sudo docker commit f99a50cad361 sfxpt/DevEnv sid
+ sudo docker images 
+
+NB, This is an example, because I later found that +gnupg-agent+ is not working as expected under docker, but maybe it's only me. Please comment on your experience using +gnupg-agent+ under docker.

@@ -1,0 +1,168 @@
+= Debian/Ubuntu Package Developing with Docker, Continued
+
+:blogpost-categories: Debian,Ubuntu,Package Building,Docker
+
+Last time I blogged about that http://sfxpt.wordpress.com/2013/11/10/debianubuntu-package-developing-with-docker/[Docker being the best tool for developing Debian/Ubuntu packages]. That was in principle generally speaking, and let's get practical this time.
+
+pass::[<!--more-->]
+
+== Docker advantages
+
+To recap, 
+
+- The reason Docker being the best tool for developing Debian/Ubuntu packages is that, it gives you isolated pure & pristine environments to build packages, *and* it allows you to build layers on top of each other, while giving you the freedom to play in any layer at any given time. Moreover, when it comes to Debian packages developing, the best part is that all your changes to the layer can be discarded at your will, so you can *always* start from the pristine stage of your layer.
+
+- We talked about constructing the first layer to be the bare-minimum installation system that contains not much more than a deb-bootstrap, which will be used to test our final package installation, to verify that the package install well on a bare-minimum system.
+
+- We also talked about strategically constructing layers on top of each other so as to best facilitate packages developing. Further than that, sharing resources among docker images is also briefly touched upon. 
+
+Now let's see how thing are done. 
+
+== Building base docker images
+
+To build the fundamental bare-minimum installation system is very simple. For example, to build a Debian Sid base system, you just do:
+
+  mkimage-debootstrap.sh sfxpt/debian sid
+
+the +sfxpt+ is just a username that docker recommends you to use. I chose +sfxpt+ for myself. You can replace it all with your chosen username and make it yours.
+
+To build an Ubuntu docker image, likewise:
+
+  mkimage-debootstrap.sh sfxpt/ubuntu saucy
+
+Of course, you need +debootstrap+ and +mkimage-debootstrap.sh+ installed first. For details, including more on the docker username, check out https://docs.google.com/document/d/1f8iflnFSZxAU9FhoLQPEVlSKhVPXbtCaqTVPTTJb9yo/edit#heading=h.rqnwbrorxiua[how to build base boxes for Docker]. 
+
+== The Dockerfiles
+
+Now we have out first layer. How to build further layers on top of each other? Simple as well, just script it in the +Dockerfile+. Here is my Ubuntu Saucy +Dockerfile+:
+
+[source,shell]
+-------------------------
+# DevEnv:saucy
+# Dockerfile for build environment for ubuntu saucy 
+
+FROM sfxpt/ubuntu:saucy 
+
+# Set the env variables to non-interactive
+ENV DEBIAN_FRONTEND noninteractive
+ENV DEBIAN_PRIORITY critical
+ENV DEBCONF_NOWARNINGS yes 
+
+# Upstart and DBus have issues inside docker. Work around it
+#RUN dpkg-divert --local --rename --add /sbin/initctl && ln -s /bin/true /sbin/initctl
+
+RUN apt-get update
+
+# Installing the build environment 
+RUN apt-get install -y build-essential devscripts fakeroot quilt dh-make automake libdistro-info-perl less nano
+-------------------------
+
+Notes, 
+
+- This environment is based on my +sfxpt/ubuntu:saucy+ base system.
+- I like to base it on my own base system instead of pulling someone else's from the internet because
+ * this way I can guarantee that my base system is up to date by the time I need it. Otherwise I might need to override many things on top of that if the base is outdated. 
+ * it's extremely simple to build a base system of my own, as we've seen.
+- The +DBus+ issue mentioned everywhere else has already been taken care of by the +mkimage-debootstrap.sh+ script, so we don't need to do it again here. 
+- This will be my packages developing environment, and so far the package list seems to be sufficient. 
+- I chose not to install +pbuilder+ within the docker image, because I can *always* start from a pristine stage.
+
+I put the +Dockerfile+ file under +/export/build/docker/DevEnv-saucy+. For my Debian Sid developing environment, it's even more simpler:
+
+[source,shell]
+-------------------------
+cd /export/build/docker/DevEnv-sid
+sed 's/ubuntu/debian/g; s/saucy/sid/g' ../DevEnv-saucy/Dockerfile > Dockerfile 
+-------------------------
+
+== Building more docker layers
+
+Now that we have the +Dockerfile+ files, how to turn them into docker images? Simple as well:
+
+  sudo docker build -rm -t sfxpt/DevEnv:sid /export/build/docker/DevEnv-sid
+
+This is actually what I will do:
+
+[source,shell]
+-------------------------
+# docker image tag
+dit=saucy
+sudo docker build -rm -t sfxpt/DevEnv:$dit /export/build/docker/DevEnv-$dit
+dit=sid
+sudo docker build -rm -t sfxpt/DevEnv:$dit /export/build/docker/DevEnv-$dit
+-------------------------
+
+Notes,
+
+- The +-rm+ switch will have the intermediate containers removed, to save space, speed things up, and to be more robust. 
+- The +-t+ will tag the docker image, which you can refer to later, just like the +sfxpt/ubuntu:saucy+ that we are referring to in the  +Dockerfile+ file. 
+
+== More docker layer examples
+
+Here is another example, to show how to further build docker layers on top of each other. 
+
+The Ubuntu launchpad uses the Bzr as their version control system. I don't use Bzr much, but I do need to use it from time to time, so instead of building Bzr in to my Ubuntu develop environment, I build a Bzr layer on top of my Ubuntu develop environment:
+
+[source,shell]
+-------------------------
+FROM sfxpt/DevEnv:saucy
+
+RUN apt-get update
+
+RUN apt-get install -y bzr-builder
+-------------------------
+
+and to build it, 
+
+  sudo docker build -rm -t sfxpt/Bzr /export/build/docker/Bzr
+
+== Docker layer showcase 
+
+Here are the docker images that we covered so far:
+
+-------------------------
+$ sudo docker images
+REPOSITORY    TAG     ID             CREATED         SIZE
+sfxpt/Bzr     latest  376e8a4b7deb   11 minutes ago  16.88 kB (virtual 591.3 MB)
+sfxpt/DevEnv  sid     33d6320a8b04   13 minutes ago  382.4 MB (virtual 574.2 MB)
+sfxpt/DevEnv  saucy   89989d257023   26 minutes ago  287 MB (virtual 485.4 MB)
+sfxpt/ubuntu  13.10   45248c37ac6d   3 hours ago     98.64 MB (virtual 98.64 MB)
+sfxpt/ubuntu  saucy   45248c37ac6d   3 hours ago     98.64 MB (virtual 98.64 MB)
+sfxpt/debian  sid     b02adec6141f   4 hours ago     125.3 MB (virtual 125.3 MB)
+-------------------------
+
+We can see that being able to build docker layers one on top of another is a big saver for both space and time. For example, for only less that 17kB, we can have a Bzr version control system with the fully functioning Ubuntu developing environment. It will be over 590MB in size if not build this way. 
+
+== More on sharing
+
+This is that part that I'm most fond of. As we can see, the docker images/layers are extremely easy to build, but when it comes to packages developing, how to put our source code into each system and how to maintain their synchronization could be a big challenge/headache. 
+
+As it turns out there is a very simple solution -- all our building systems can share the same code base, because docker allows us to map part of the host file system into the docker sub system. Here is how:
+
+  sudo docker run -v /export:/export -i -t sfxpt/DevEnv:sid /bin/bash
+
+It allows me to get into my Debian Sid developing environment with the +/export+ folder from my host mapped as the +/export+ directory within my Sid developing system. For more on this, check out https://docs.google.com/document/d/1tgzbbc76tV82nxJCpHTSb-Y5tns8Uim8sLDExy12e5k/edit[Docker Advanced Volumes], and 
+
+Can I specify host directory to mount from Dockerfile +
+http://stackoverflow.com/questions/18873474/can-i-specify-host-directory-to-mount-from-dockerfile
+
+How to deal with persistent storage (e.g. databases) in docker +
+http://stackoverflow.com/questions/18496940/how-to-deal-with-persistent-storage-e-g-databases-in-docker
+
+
+So, as long as I take good care of my +/export+ developing directory, the docker images/layers are just throwaways that I can tear-down/rebuild at any time. And as we have seen, these pristine environments can be built very easily. 
+
+== What's inside the host system
+
+As explained in previous section, the codebase is in the *host* system. What else are better in the host system? 
+
+// - I do +debuild+ of the source package from the host
+- I don't have +pbuilder+ within the host system either because I am sure that I will always be building from the pristine environment.
+- I keep +gpg+ and +dput+ in my host system so there will be less things to install in the sub system, and I only need to cache my +gpg+ password to +gpg-agent+ http://superuser.com/questions/602307/using-gnupg-and-its-daemon-gpg-agent[only once].
+- I use +emacs+ to edit my source. I only install +emacs+ in my host system.
+- I only install +git+ in my host system as well.
+- And of course, other reliable backup/restore/version-control tools as well
+
+== Takeaway
+
+So the takeaway is that the docker is very flexible, super easy and simple, and extremely cool for Debian/Ubuntu package developing.

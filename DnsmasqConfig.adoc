@@ -1,0 +1,466 @@
+= DNSmasq Installation & Configuration
+
+// :blogpost-categories: Debian,Ubuntu,DHCP,DNS,dnsmasq
+
+I blogged about http://sfxpt.wordpress.com/2011/02/06/providing-dhcp-and-dns-services-with-dnsmasq/[Providing DHCP and DNS services with DNSMasq] before, and I'm doing it again. The previous one emphasis on all the knowledge one needs to know, and this time the emphasis is on the practical steps, all that need to be done and their orders. Since the focus is on the steps, the following is a bit dry comparing to the previous one. 
+
+pass::[<!--more-->]
+
+[[configure]]
+=== Configure DNSmasq
+
+It's better to keep the DNSmasq configuration outside the
+distributed .conf file -- it makes upgrades much less of a
+headache. Here is what I did, under +root+ account:
+
+Prepare a file +/etc/dnsmasq.d/dnsmasq.service.conf+ say by,
+
+  cat > /etc/dnsmasq.d/dnsmasq.service.conf
+
+[source,shell]
+--------------------------------------
+# The following options make you a better netizen, since they
+# tell dnsmasq to filter out queries which the public DNS cannot
+# answer, and which load the servers (especially the root servers)
+# uneccessarily. If you have a dial-on-demand link they also stop
+# these requests from bringing up the link uneccessarily. 
+
+# Never forward plain names (without a dot or domain part)
+domain-needed
+# Never forward addresses in the non-routed address spaces.
+bogus-priv
+ 
+# By  default,  dnsmasq  will  send queries to any of the upstream
+# servers it knows about and tries to favour servers to are  known
+# to  be  up.  Uncommenting this forces dnsmasq to try each query
+# with  each  server  strictly  in  the  order  they   appear   in
+# /etc/resolv.conf
+#strict-order
+
+# By default, when dnsmasq has more than one upstream server
+# available, it will send queries to just one server. Setting this
+# flag forces dnsmasq to send all queries to all available servers.
+# The reply from the server which answers first will be returned to
+# the original requestor.
+#all-servers
+# blocks probe-machines attack
+stop-dns-rebind
+rebind-localhost-ok
+
+# If you want dnsmasq to detect attempts by Verisign to send queries
+# to unregistered .com and .net hosts to its sitefinder service and
+# have dnsmasq instead return the correct NXDOMAIN response, uncomment
+# this line. You can add similar lines to do the same for other
+# registries which have implemented wildcard A records.
+# http://www.thekelleys.org.uk/dnsmasq/docs/setup.html
+bogus-nxdomain=64.94.110.11
+
+# stops dnsmasq from getting DNS server addresses from /etc/resolv.conf
+# but from below
+no-resolv
+
+# == Provide DNS server addresses from this file instead
+# Google Public DNS (respond time: ~36 msec constantly)
+server=8.8.8.8
+#server=8.8.4.4
+#OpenDNS Servers (respond time: ~160 msec initially, ~28 msec afterwards)
+#server=208.67.222.222
+#server=208.67.220.220
+# Disabled by default becase OpenDNS will redirect all Google queries to their own search server. Ref:
+# https://wiki.archlinux.org/index.php/dnsmasq#Prevent_OpenDNS_Redirecting_Google_Queries
+
+# Set this (and domain: see below) if you want to have a domain
+# automatically added to simple names in a hosts-file.
+expand-hosts
+
+# enable dhcp
+dhcp-authoritative
+dhcp-option=6,0.0.0.0
+
+# use /etc/ethers for static hosts; same format as --dhcp-host
+# <hwaddr> [<hostname>] <ipaddr>
+#read-ethers
+--------------------------------------
+
+Now prepare a file +/etc/dnsmasq.d/dnsmasq.intranet.conf+ say by,
+
+  cat > /etc/dnsmasq.d/dnsmasq.intranet.conf
+
+[source,shell]
+--------------------------------------
+# ISP DNS Server
+server=192.168.2.1
+
+# dhcp lease (start,end,netmask,leasetime)
+# supply the range of addresses available for lease and optionally
+# a lease time. If you have more than one network, you will need to
+# repeat this for each network on which you want to supply DHCP
+# service.
+dhcp-range=192.168.2.1,192.168.2.80,48h
+
+# Set the domain for dnsmasq. this is optional, but if it is set, it
+# does the following things.
+# 1) Allows DHCP hosts to have fully qualified domain names, as long
+#     as the domain part matches this setting.
+# 2) Sets the "domain" DHCP option thereby potentially setting the
+#    domain of all systems configured by DHCP
+# 3) Provides the domain part for "expand-hosts"
+#domain=example.org
+--------------------------------------
+
+And the third one:
+
+  cat > /etc/dnsmasq.d/dnsmasq.debug.conf
+
+--------------------------------------
+log-queries
+log-dhcp
+--------------------------------------
+
+Now we test. My +dnsmasq+ installation is done under Ubuntu 13.10 Saucy, which a bit different than other distros. Last time when I install +dnsmasq+, it was under Debian, and the +dnsmasq+ wrote to log file +/var/log/daemon.log+. So does Red Hat Linux as well. However under Ubuntu 13.10 Saucy, +dnsmasq+ writes to /var/log/syslog. So, 
+
+[source,shell]
+--------------------------------------
+dig google.ca @127.0.0.1
+
+# dnsmasq log file
+DnsmasqLogF=`ls -t /var/log/* | head -1`
+# For Ubuntu 13.10 Saucy specifically
+# DnsmasqLogF=/var/log/syslog
+
+echo "    *** DEBUG `date --rfc-3339=seconds` DEBUG *** " >> $DnsmasqLogF
+
+rm /etc/dnsmasq.d/*~; service dnsmasq restart 
+
+tail $DnsmasqLogF
+--------------------------------------
+
+The normal output looks like this:
+
+--------------------------------------
+Nov 28 21:30:07 coral dnsmasq[14078]: query[A] google.ca from 127.0.0.1
+Nov 28 21:30:07 coral dnsmasq[14078]: forwarded google.ca to 8.8.8.8
+Nov 28 21:30:07 coral dnsmasq[14078]: forwarded google.ca to 208.67.222.222
+Nov 28 21:30:07 coral dnsmasq[14078]: reply google.ca is 173.194.43.127
+Nov 28 21:30:07 coral dnsmasq[14078]: reply google.ca is 173.194.43.120
+Nov 28 21:30:07 coral dnsmasq[14078]: reply google.ca is 173.194.43.119
+    *** DEBUG 2013-11-28 21:30:16-05:00 DEBUG *** 
+Nov 28 21:30:20 coral dnsmasq[14078]: exiting on receipt of SIGTERM
+Nov 28 21:30:22 coral dnsmasq[15882]: started, version 2.66 cachesize 150
+Nov 28 21:30:22 coral dnsmasq[15882]: compile time options: IPv6 GNU-getopt DBus i18n IDN DHCP DHCPv6 no-Lua TFTP conntrack ipset auth
+Nov 28 21:30:22 coral dnsmasq-dhcp[15882]: DHCP, IP range 192.168.2.1 -- 192.168.2.80, lease time 2d
+Nov 28 21:30:22 coral dnsmasq[15882]: using nameserver 208.67.222.222#53
+Nov 28 21:30:22 coral dnsmasq[15882]: using nameserver 8.8.8.8#53
+Nov 28 21:30:22 coral dnsmasq[15882]: read /etc/hosts - 8 addresses
+--------------------------------------
+
+Now we can turn off debugging by:
+
+  mv /etc/dnsmasq.d/dnsmasq.debug.conf /etc/dnsmasq.d/dnsmasq.debug.dpkg-old
+
+Basically, we've done DNSmasq configuration and it is ready to serve. You might not need to change the first file, but the second file, +/etc/dnsmasq.d/dnsmasq.intranet.conf+, might need to be changed if your IP segment is different than mine. 
+
+The next step would be a big one. 
+
+==== Switching from dynamic IP to static IP
+
+To switch from dynamic IP to static IP, and designate the local dnsmasq as the dns name server:
+
+[source,shell]
+--------------------------------------
+% cat /etc/network/interfaces
+# This file describes the network interfaces available on your system
+# and how to activate them. For more information, see interfaces(5).
+
+# The loopback network interface
+auto lo
+iface lo inet loopback
+
+# The primary network interface
+auto eth0
+allow-hotplug eth0
+
+iface eth0 inet static
+        address 192.168.2.100
+        netmask 255.255.255.0
+        broadcast 192.168.2.255
+        network 192.168.2.0
+        gateway 192.168.2.1
+	dns-nameservers 127.0.0.1
+--------------------------------------
+
+Take a look at +/etc/resolv.conf+ before switching over:
+
+--------------------------------------
+% cat /etc/resolv.conf
+# Generated by NetworkManager
+domain home
+search home
+nameserver 192.168.2.1
+--------------------------------------
+
+Switching over to static IP:
+
+  % service networking restart
+  networking stop/waiting
+  networking start/running
+
+However, for my case, 
+
+. The /etc/resolv.conf was not re-generated by NetworkManager, so I manually replaece it with a correct one, and restarted the networking service several times to make sure it would not be overwritten.
+. The +ifconfig+ still shows the original IP address:
++
+  % ifconfig eth0
+  eth0      Link encap:Ethernet  HWaddr 00:e0:4d:b8:98:ef  
+	    inet addr:192.168.2.160  Bcast:192.168.2.255  Mask:255.255.255.0
+	    inet6 addr: fe80::2e0:4dff:feb8:98ef/64 Scope:Link
+	    UP BROADCAST RUNNING MULTICAST  MTU:1500  Metric:1
+	    RX packets:83368 errors:0 dropped:0 overruns:0 frame:0
+	    TX packets:56046 errors:0 dropped:0 overruns:0 carrier:0
+	    collisions:0 txqueuelen:1000 
+	    RX bytes:97697755 (97.6 MB)  TX bytes:8121504 (8.1 MB)
++
+So I tried to update it myself and here is the how I fixed it:
++
+--------------------------------------
+% ifdown eth0
+ifdown: interface eth0 not configured
+
+% ip addr show dev eth0
+2: eth0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc pfifo_fast state UP qlen 1000
+    link/ether 00:e0:4d:b8:98:ef brd ff:ff:ff:ff:ff:ff
+    inet 192.168.2.160/24 brd 192.168.2.255 scope global eth0
+       valid_lft forever preferred_lft forever
+    inet 192.168.2.100/24 brd 192.168.2.255 scope global secondary eth0
+       valid_lft forever preferred_lft forever
+    inet6 fe80::2e0:4dff:feb8:98ef/64 scope link 
+       valid_lft forever preferred_lft forever
+
+ip address delete 192.168.2.160/24 dev eth0
+
+% ip addr show dev eth0
+2: eth0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc pfifo_fast state UP qlen 1000
+    link/ether 00:e0:4d:b8:98:ef brd ff:ff:ff:ff:ff:ff
+    inet6 fe80::2e0:4dff:feb8:98ef/64 scope link 
+       valid_lft forever preferred_lft forever
+
+% service networking restart
+networking stop/waiting
+networking start/running
+
+% ifconfig eth0
+eth0      Link encap:Ethernet  HWaddr 00:e0:4d:b8:98:ef  
+          inet addr:192.168.2.100  Bcast:192.168.2.255  Mask:255.255.255.0
+          inet6 addr: fe80::2e0:4dff:feb8:98ef/64 Scope:Link
+          UP BROADCAST RUNNING MULTICAST  MTU:1500  Metric:1
+          RX packets:83654 errors:0 dropped:0 overruns:0 frame:0
+          TX packets:56291 errors:0 dropped:0 overruns:0 carrier:0
+          collisions:0 txqueuelen:1000 
+          RX bytes:97736010 (97.7 MB)  TX bytes:8168825 (8.1 MB)
+--------------------------------------
+
+Be sure to restart the dnsmasq service as well, because otherwise it'll be 
+listening to the wrong IP address:
+
+[source,shell]
+--------------------------------------
+% service dnsmasq restart 
+ * Restarting DNS forwarder and DHCP server dnsmasq                      [ OK ] 
+
+# double check
+% netstat -ulnp | grep :53
+udp        0      0 127.0.0.1:53            0.0.0.0:*    19523/dnsmasq   
+udp        0      0 192.168.2.100:53        0.0.0.0:*    19523/dnsmasq   
+udp6       0      0 ::1:53                  :::*         19523/dnsmasq   
+udp6       0      0 fe80::2e0:4dff:feb8::53 :::*         19523/dnsmasq   
+--------------------------------------
+
+Now to test and make sure everything works fine (with local/public address, or without):
+
+--------------------------------------
+$ dig coral @127.0.0.1
+; <<>> DiG 9.9.3-rpz2+rl.13214.22-P2-Ubuntu-1:9.9.3.dfsg.P2-4ubuntu1 <<>> coral @127.0.0.1
+;; global options: +cmd
+;; Got answer:
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 48696
+;; flags: qr aa rd ra ad; QUERY: 1, ANSWER: 1, AUTHORITY: 0, ADDITIONAL: 0
+
+;; QUESTION SECTION:
+;coral.                         IN      A
+
+;; ANSWER SECTION:
+coral.                  0       IN      A       127.0.0.1
+
+;; Query time: 1 msec
+;; SERVER: 127.0.0.1#53(127.0.0.1)
+;; WHEN: Sat Nov 30 10:55:49 EST 2013
+;; MSG SIZE  rcvd: 39
+
+
+$ dig coral @192.168.2.100
+; <<>> DiG 9.9.3-rpz2+rl.13214.22-P2-Ubuntu-1:9.9.3.dfsg.P2-4ubuntu1 <<>> coral @192.168.2.100
+;; global options: +cmd
+;; Got answer:
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 46161
+;; flags: qr aa rd ra ad; QUERY: 1, ANSWER: 1, AUTHORITY: 0, ADDITIONAL: 0
+
+;; QUESTION SECTION:
+;coral.                         IN      A
+
+;; ANSWER SECTION:
+coral.                  0       IN      A       127.0.0.1
+
+;; Query time: 1 msec
+;; SERVER: 192.168.2.100#53(192.168.2.100)
+;; WHEN: Sat Nov 30 10:55:56 EST 2013
+;; MSG SIZE  rcvd: 39
+
+
+$ dig coral
+; <<>> DiG 9.9.3-rpz2+rl.13214.22-P2-Ubuntu-1:9.9.3.dfsg.P2-4ubuntu1 <<>> coral
+;; global options: +cmd
+;; Got answer:
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 34809
+;; flags: qr aa rd ra ad; QUERY: 1, ANSWER: 1, AUTHORITY: 0, ADDITIONAL: 0
+
+;; QUESTION SECTION:
+;coral.                         IN      A
+
+;; ANSWER SECTION:
+coral.                  0       IN      A       127.0.0.1
+
+;; Query time: 1 msec
+;; SERVER: 192.168.2.100#53(192.168.2.100)
+;; WHEN: Sat Nov 30 10:56:10 EST 2013
+;; MSG SIZE  rcvd: 39
+--------------------------------------
+
+Each of the three methods (with local/public address, or without) is important. All have to be functioning as expected before moving on. 
+
+[[static]]
+==== Add static-IP entries
+
+Now to add your machines so that they can have static local IP addresses. 
+
+  cat >> /etc/dnsmasq.d/dnsmasq.intranet.conf
+
+[source,shell]
+--------------------------------------
+
+# dhcp-host=00:28:58:3A:EB:A1,192.168.2.20,computer2,infinite
+#	   ^                 ^            ^         ^
+#	   MAC               IP Address   hostname  lease time
+
+dhcp-host=00:16:3e:00:00:01,192.168.0.81,kvm1,8h
+dhcp-host=00:16:3e:00:00:02,192.168.0.82,kvm2,8h
+dhcp-host=a8:xx:xx:xx:xx:6a,192.168.2.101,htc,infinite
+--------------------------------------
+
+Only 3 entries provided, but you get the idea. 
+
+[[switching]]
+==== Switching over to DNSmasq service
+
+To make the above changed configuration take effect, dnsmasq must be
+restarted (because sending SIGHUP to the dnsmasq process will only cause it
+to empty its cache and then re-load /etc/hosts and /etc/resolv.conf):
+
+  service dnsmasq restart
+
+But before doing that, we need to disable (DSL) router's dhcp and dns
+services, because (DSL) router would normally act as both dhchp and dns server
+for the most cases. if I dedicate a dnsmasq server for both dhcp and dns
+servers, I have to disable DHCP on my router so only my own dnsmasq server
+responds to DHCP requests. For DNS, the DHCP response can give the IP
+address of the DNS for the clients to use.
+
+Having restarted the dnsmasq service, we still can't test anything because
+dnsmasq doesn't return results for dns query until after it has actually
+served out the address. So we can't prove anything until after a DHCP/DNS
+request is made. To do so, I just switch on my cell phone's wifi, then check:
+
+[source,shell]
+--------------------------------------
+$ tail $DnsmasqLogF
+Nov 30 10:58:30 coral dnsmasq-dhcp[19523]: DHCPDISCOVER(eth0) a8:xx:xx:xx:xx:6a 
+Nov 30 10:58:30 coral dnsmasq-dhcp[19523]: DHCPOFFER(eth0) 192.168.2.101 a8:xx:xx:xx:xx:6a 
+Nov 30 10:58:30 coral dnsmasq-dhcp[19523]: DHCPREQUEST(eth0) 192.168.2.101 a8:xx:xx:xx:xx:6a 
+Nov 30 10:58:30 coral dnsmasq-dhcp[19523]: DHCPACK(eth0) 192.168.2.101 a8:xx:xx:xx:xx:6a htc
+Nov 30 10:58:34 coral dhclient: DHCPREQUEST of 192.168.2.160 on eth0 to 192.168.2.1 port 67 (xid=0x22af217b)
+
+# View leases
+$ cat /var/lib/misc/dnsmasq.leases 
+0 a8:xx:xx:xx:xx:6a 192.168.2.101 htc 01:a8:xx:xx:xx:xx:6a
+--------------------------------------
+
+Now to test and make sure everything works fine (normal/reverse DNS):
+
+--------------------------------------
+$ dig htc
+; <<>> DiG 9.9.3-rpz2+rl.13214.22-P2-Ubuntu-1:9.9.3.dfsg.P2-4ubuntu1 <<>> htc
+;; global options: +cmd
+;; Got answer:
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 23375
+;; flags: qr aa rd ra ad; QUERY: 1, ANSWER: 1, AUTHORITY: 0, ADDITIONAL: 0
+
+;; QUESTION SECTION:
+;htc.                           IN      A
+
+;; ANSWER SECTION:
+htc.                    0       IN      A       192.168.2.101
+
+;; Query time: 1 msec
+;; SERVER: 192.168.2.100#53(192.168.2.100)
+;; WHEN: Sat Nov 30 11:03:09 EST 2013
+;; MSG SIZE  rcvd: 37
+
+
+$ dig -x 192.168.2.101
+; <<>> DiG 9.9.3-rpz2+rl.13214.22-P2-Ubuntu-1:9.9.3.dfsg.P2-4ubuntu1 <<>> -x 192.168.2.101
+;; global options: +cmd
+;; Got answer:
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 10727
+;; flags: qr aa rd ra ad; QUERY: 1, ANSWER: 1, AUTHORITY: 0, ADDITIONAL: 0
+
+;; QUESTION SECTION:
+;101.2.168.192.in-addr.arpa.    IN      PTR
+
+;; ANSWER SECTION:
+101.2.168.192.in-addr.arpa. 0   IN      PTR     htc.
+
+;; Query time: 16 msec
+;; SERVER: 192.168.2.100#53(192.168.2.100)
+;; WHEN: Sat Nov 30 11:03:20 EST 2013
+;; MSG SIZE  rcvd: 61
+
+
+$ dig -x 192.168.2.101 @192.168.2.100
+; <<>> DiG 9.9.3-rpz2+rl.13214.22-P2-Ubuntu-1:9.9.3.dfsg.P2-4ubuntu1 <<>> -x 192.168.2.101 @192.168.2.100
+;; global options: +cmd
+;; Got answer:
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 41859
+;; flags: qr aa rd ra ad; QUERY: 1, ANSWER: 1, AUTHORITY: 0, ADDITIONAL: 0
+
+;; QUESTION SECTION:
+;101.2.168.192.in-addr.arpa.    IN      PTR
+
+;; ANSWER SECTION:
+101.2.168.192.in-addr.arpa. 0   IN      PTR     htc.
+
+;; Query time: 1 msec
+;; SERVER: 192.168.2.100#53(192.168.2.100)
+;; WHEN: Sat Nov 30 11:03:32 EST 2013
+;; MSG SIZE  rcvd: 61
+--------------------------------------
+
+Again, each of the three methods is important. All have to be functioning as expected before moving on. 
+
+And, that's it, that's all we need to do to have a proper 
+DHCP and DNS server under Ubuntu 13.10 Saucy.
+
+=== Conclusion
+
+It was well known that the http://unix.stackexchange.com/a/59424[NetworkManager does not play well with dnsmasq] (and https://bugs.launchpad.net/ubuntu/+source/network-manager/+bug/959037[here]). My Ubuntu, LUbuntu 13.10, comes with NetworkManager and `dnsmasq-base`. I just install `dnsmasq` on top of it, and so far the above staightforward configuration seems to be working fine. It has survives several NetworkManager restart requests, and system suspends. 
+
+Again, the blog focuses on 'what' and 'how' things have been done, for the 'why' part and more troubleshooting tips, please refer back to http://sfxpt.wordpress.com/2011/02/06/providing-dhcp-and-dns-services-with-dnsmasq/[Providing DHCP and DNS services with DNSMasq].
+
