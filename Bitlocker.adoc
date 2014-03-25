@@ -1,0 +1,65 @@
+= Bitlocker guideline and precaution
+
+:blogpost-categories: bitlocker,security
+
+This was a question that posted on superuser.com, now becomes a story of its own.
+
+pass::[<!--more-->]
+
+== The story of my question
+
+The posted question was seeking for guideline and precaution, because I found some disturbing facts about +bitlocker+ that I wish I had known before using it. The post ends with a question _"Any clear guideline and precaution about using bitlocker? E.g., any clear definition about when the saved key will become invalid?"_
+
+The simple technical discussion quickly become very ugly. Five minutes after the post, I suddenly felt I was surround with a shoal of big sharks. In just five minute, 
+
+- My question get voted for closing without any explanation.
+- The title get changed to something tediously long one: "Under what conditions does a bitlocker recovery key become invalid?"
+  * That specific title only covers one tenth of the scope that I was trying to get the answers for -- the guideline and precaution.
+  * I personally think my original title, "Bitlocker guideline and precaution", is ten times better that that tediously-long, not-to-the-point one, but that change was made from someone ranked very high up in stackoverflow user list, because s/he has the authority to make change to my question immediately, without my consent, and without even peer review. 
+- Two people started to attack me in the comment, one being "This is not a discussion board, what is your question?" What is my question? It's right there in the last sentence. Come on! you attack me before even reading my post?
+- Later there came another one, accusing me of "ranting how I dislike bitlocker".
+
+I tried to explain that I was astonished with what I found and was still in the 
+astonishment mode when asking the question; and I tried to explain that I want people to be aware of my concerns. But the pressure kept mounting. I can tell they want to shut me up. Swimming with sharks is really not a good feeling so I decided to take the question down. 
+
+So here is it my original question, a question that will remain forever unanswered. I'll post word for word, without any modification, so everyone can see if or how I was "ranting". 
+
+== The content of my question
+
+I don't know how many people choose to use +bitlocker+ voluntarily. Personally I wouldn't use it unless forced by company policy.
+
+As common precaution, I exported and saved my BitLocker Drive Encryption recovery key to my USB key, and even printed a hard copy just in case I can't access that file some how.
+
+As common sense, I thought the above steps would be good enough, when I really need that key to recover my files from my drives when necessary, as long as I can access my key file from USB and/or I can see that my hard copy is there.
+
+That's been a while. But today, I just found out *I was only having a false sense of security. My key file from USB plus my hard copy cannot guarantee that I can recover my drive even if both of them can be accessible just fine! I just can't believe what I've found!*
+
+For example, seems that if I had re-sized my partition, or even changed my BIOS setting, my carefully preserved key would do me no good at all -- my drive will be as good as a dead-stone if I ever need to recover it using my carefully preserved key after above changes! That false sense of security will guarantee my data will be lost forever if I had done any of above, or a whole lots of other things that had been seemed as harmless before.
+
+SO BE VERY CAREFUL people. Don't let that false sense of security bite you. *Personally I think it is a big problem, but Microsoft is not doing a good job warning people about it*. Instead Microsoft is only painting a pinky picture about it. Because everything is so vague from Microsoft about when your carefully preserved key will become invalid.
+
+Ref: http://technet.microsoft.com/en-us/library/cc732774.aspx
+
+Any clear guideline and precaution about using +bitlocker+? E.g., any clear definition about when the saved key will become invalid?
+
+== My comment to my question
+
+Yeah, maybe I didn't hide my dislike to Microsoft and its products, but I think my question is not about showing how I dislike +bitlocker+, but about showing +bitlocker+'s design flaw. But those shoal of big sharks have much stronger voices than me on superuser, I feel like I just can't reason with them. 
+
+BTW, for those people that have already been trapped in +bitlocker+, the above referenced Microsoft technet library article recommends you to turn off +bitlocker+ temporarily whenever you need to make some changes to the drive or system, e.g., re-sizing the partition, or change the BIOS. The thing is, there is a whole lots of other things that had been seemed as harmless before that now need your precaution. The problem is the list that need your precaution is very vague. Hence my question, but unfortunately I was shut up before the question even get answered. 
+
+I did researched more myself on the topic, and it seems that if you don't know or forgot to turn off +bitlocker+ temporarily before making system changes, bitlocker will put the system into recovery mode. But what would happen if bitlocker put the system into recovery mode? Microsoft is vague about it again. Hence my follow up question:
+
+*What would happen after Bitlocker put the system into recovery mode* +
+http://superuser.com/questions/719623/what-would-happen-after-bitlocker-put-the-system-into-recovery-mode
+
+You can see from it that, even though your data might not be lost, it will sure be very messy and ugly. Again, somebody does not like my finding and thumbing down on it. If you have read to here so far, please show your moral support by up voting my question. Thanks. 
+
+Ok, before ending my article, please allow me rant about +bitlocker+:
+
+Having carefully examine what +bitlocker+ is actually protecting, I suddenly have a feeling that, instead of it glorious “protecting *your* data” crown, Microsoft is only protecting *their* own territory from Linux, setting up another hoop for Linux to jump through, just like its EFI Boot trick. Nice try, but another failed attempt, Microsoft! Ref,
+
+*How to access bitlocker encrypted drive in linux?* +
+http://superuser.com/questions/376533/how-to-access-bitlocker-encrypted-drive-in-linux
+
+

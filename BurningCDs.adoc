@@ -1,0 +1,119 @@
+= Burning CD/DVDs with cdrecord
+
+:blogpost-categories: linux,Debian,Ubuntu
+
+This is an old story, but for anyone who are still using the Debian/Ubuntu wodim to burn CD/DVDs, read on. I've picked my side, and I hope Debian has the courage to correct its own mistake. 
+
+pass::[<!--more-->]
+
+== PPA repository for original cdrtools for newer Ubuntu
+
+http://ubuntuforums.org/showthread.php?t=1336278
+
+[quote,mgol]
+____________
+I use Karmic which includes cdrkit packages. I would personally want to replace them with original cdrtools which are written better.
+
+I don't want to involve in any copyright fights but it would be nice to at least have packages that don't break cdrtools if installed manually and a cdrtools PPA repository would be welcome.
+
+I saw this:
+https://launchpad.net/~ubuntu-burning/+archive/ppa
+However, support ends on Intrepid; 
+____________
+
+https://launchpad.net/~brandonsnider/+archive/cdrtools
+
+CDRTools has been packaged as a replacement for CDRKit. This may (or may not) solve many CD/DVD burning issues in Ubuntu.
+
+The CDRTools package builds Cdrecord, which replaces Wodim, and Mkisofs, which replaces Genisoimage.
+
+== The controversy
+
+http://ubuntuforums.org/showthread.php?t=1336278
+
+[quote,nomnex]
+____________
+maybe read this for your information
+
+http://www.linux-watch.com/news/NS6848359973.html
+____________
+
+These are pointless rants and not really related to cdrtools.
+
+During the past 14 years, I was forced several times to find
+workarouds for non-stable Linux kernel interfaces. The last 
+incompatible change in Linux SCSI is furtunately nearly 6
+years ago. This last one has been introduced by Linus Torvalds 
+and caused any compliant SCSI userprogram to fail. Torvalds
+has been asked by a big majority of the Linux kernel hackers
+to undo his change immediately after he broke Linux, to no
+avail.
+
+The original cdrtools only have been broken by Linux kernel
+self-incompatibilities from time to time....
+
+Unfortunately many people may believe that there are additional
+problems, but these additional problem are bugs that have been
+introduced by Debian in the Debian variants of the cdrtools
+binaries. The current problems are caused by an unfriendly
+Debian packager that started attacks against the project in 
+May 2004.
+
+The current version of the fork found on Debian is dead since
+more than 3 years. There are more than 100 well known and
+well documented bugs. There never has been any attempt from
+Debian to fix these bugs.
+
+People who use the original software instead of the fork
+from Debian know that none of the documented bugs from
+the Debian variant apply to the original software.
+
+During the past 6 months, more and more people realized
+the real cause of the problems and started using the
+original software again.
+
+[quote,mgol]
+____________
+I don't want to involve in any copyright fights but ...
+____________
+
+I have no idea why some people run personal attacks against cdrtools.
+It started as a personal attack in May 2004 and in Autumn 2005,
+the person who started the personal attacks changed his strategy
+and started to claim a legal problem in the original software.
+
+If you are interested in the legal background, it would however 
+be fairly simple to understand which side is using valid arguments.
+
+Debian and other parties that claim a legal problem did never
+give any valid legal prove for their claims and all "information"
+that is floating around is just copies from the original Debian claims.
+
+The legal validation on why the original software has no legal
+problems is however cleanly proven by legal facts and quotes
+to the related laws. . . 
+
+*schily; July 10th, 2010*
+
+About legal issues: part of all of this comes from a fundamental incompatibility between principles of Civil Law (on which the Urheberrecht is based) and Common Law (on which the copyright principles are based). . . Legal issues are a lot more complicated than what was initially thought,
+and, as you can see, Wodim legal safety is challenged.
+
+So, in plain English: keep using CDRecord happily.
+
+*Alejandro Nova; October 15th, 2010*
+
+== Testimony
+
+I use cdrecord with k3b with full success.
+
+*mgol; June 17th, 2010*
+
+Having Brasero CD write problems ever since I switched from Linux Mint 7 to 8 (Karmic) 7 months ago, I finally wanted to find a fix for it. While searching for one, I found that apparently the issues with Brasero on Lucid are even worse. In the process I also came across http://cdrecord.berlios.de/private/linux-dist.html, causing me, to immediately wanting to get rid of that unfortunate childish Linux cdrkit Kaspertheater and replacing it with cdrtools, which I am familiar with from OS/2.
+
+*OS/2-User; July 21st, 2010*
+
+I wish to thank Schily for his unequaled program. Several bugs which I had with wodim went away. I could not mount audio and video cd's and dvd's after successful burning with wodim, I could not mount any disc copied with wodim, I could not blank my dvd's with wodim. 
+
+Alejandro Nova: thank you for your competent exposition. . . your explanation shows clearly that Ubuntu can very safely include unmodified Schily's cdrtools into its distribution.
+
+*doru001; May 7th, 2012*

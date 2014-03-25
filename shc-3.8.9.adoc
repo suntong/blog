@@ -1,0 +1,73 @@
+= shc-3.8.9 is not usable
+
+:blogpost-categories: linux
+
+Well, shc-3.8.9 *is* usable. The +make test+ test passes without any problem. So what make it not usable to me?
+
+pass::[<!--more-->]
+
+It is not usable to me because the shc-3.8.9 compiled executable can't be run in shell script. Take a look at the +test.bash+ file that comes with shc:
+
+-----------------------------
+cd shc-3.8.9
+
+$ cat test.bash
+#!/bin/bash -x
+echo "\$@ is $@"
+echo "command line: $0 $*"
+echo "hello world"
+# Added
+echo "[$$] PAUSED... Hit return!"
+read DUMMY
+exit 0
+-----------------------------
+
+Now run its compiled executable:
+
+-----------------------------
+$ test.bash.x
++ echo '$@ is '
+$@ is 
++ echo 'command line: ./test.bash.x '
+command line: ./test.bash.x 
++ echo 'hello world'
+hello world
++ echo '[9661] PAUSED... Hit return!'
+[9661] PAUSED... Hit return!
++ read DUMMY
+
++ exit 0
+-----------------------------
+
+So far so good. Now let's see what will happen if the test.bash.x is put in shell script:
+
+-----------------------------
+$ cat testit
+#!/bin/sh
+
+set -x
+
+echo test started
+test.bash.x
+echo test ended
+
+$ ./testit 
++ echo test started
+test started
++ test.bash.x
++ echo test started
+test started
++ test.bash.x
++ echo test started
+test started
++ test.bash.x
++ echo test started
+test started
++ test.bash.x
+...
+-----------------------------
+
+It will never stop. That's why it is not usable to me.
+
+I tested its previous version, +shc-3.8.7+, and that was fine. So I'm not going to pack +shc-3.8.9+ but +shc-3.8.7+ instead. 
+

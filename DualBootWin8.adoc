@@ -1,0 +1,16 @@
+= Dual Boot Windows 8 UEFI with Ubuntu
+
+:blogpost-categories: Debian,Ubuntu,linux,boot,partition,UEFI
+
+This is about making it possible to dual boot Windows 8 UEFI with Ubuntu. There are lots of such blogs/posts on the Internet already, so why another one? The reason is mainly two folds:
+
+- Many of them aren't clear whether their Windows 8 is booted with UEFI or not. 
+- And most importantly, there are also lots of posts/questions that their systems are toasted, after trying. 
+
+I kind of like to know *all* the "dangers" before jumping into the water. So I "looked", before I leaped. Now I'd like to share out what I've "looked" so far, so as to make the next person's life a bit easier, if s/he wants to dual boot Windows 8 UEFI with Ubuntu as well. 
+
+My findings are posted at http://goo.gl/5dR4Ty, or 
+https://docs.google.com/document/d/1L0obnZkzX7aFyWqmx6zS1CrXEH_X9rRJUnBYeWWjJgU/edit#heading=h.hjmzej1mnr0j, if you don't want to click on shortened urls. 
+
+HTH 
+

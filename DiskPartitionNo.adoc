@@ -1,0 +1,11 @@
+= Limits to the number of Linux hard disk partitions
+
+:blogpost-categories: linux,partition
+
+The first time that I got my first Sata hard disk, I set it up with 16 partitions because it was a "big" disk, but only to find that I can't use my 16th partitions in Linxu, while my WinXP can. 
+
+pass::[<!--more-->]
+
+
+Enjoy. 
+

@@ -1,0 +1,157 @@
+= Ubuntu frugal multiboot installation without burning any CD/DVD
+
+:blogpost-categories: Linux,Ubuntu,boot,partition,extlinux,grub
+
+I have been able to boot ISO directly from the hard drives instead of from slow CD/DVD before; I was able to install any Linux without the need to burn any CD/DVD, onto either HD or USB before. But recently when I was dealing with the casper Ubuntu boot from Ubuntu 13.10, I found my old method doesn't work any more and need to find a solution. However all recent articles I found from the Internet recommend GUI tools. So, let me write one for the DIY people who like simple commands more than the fancy GUI tools. 
+
+pass::[<!--more-->]
+
+== The Problem
+
+First, the Disclaimer: This article is about frugal installing modern Ubuntu into HD or USB without burning any CD/DVD at first. It is not meant for beginners but power users who like command line more than GUI tools.
+
+So what's the problem with GUI tools for me? 
+
+- The *usb-creator-gtk* has been very buggy recently. I need to jump over the hoops to get it installed and started, but it didn't allow me to pick any disk/partition at all. 
+- The *usb-creator-kde* was claimed to be working, but I gave it up when trying to install it because I need to pull in over 150 packages just for something that I was able to do with simple commands without any extra packages before. 
+- I don't like the *usb-creator* series after all because it needs to wipe out hd/usb as the first step. That's too heavy-handed to me.
+- The *Unetbootin* was claimed to be working, but it is not in the official repo and you have to install an extra ppa for it. 
+- There is also another solution, but under the hood, it +dd+ the iso image to the hd/usb partition. I.e., turning a RW hd/usb into a RO partition. I don't like the idea at all. 
+
+To recap, none of the solutions I found allows me to do a frugal installation into a hd/usb partition that already have some other multiboot options.
+
+[[old]]
+== My old method
+
+Comparing to all above fancy tools, Ubuntu frugal installation used to be extremely simple and straightforward. The following works for ubuntu-10.04 and ubuntu-10.10.
+
+Repost from 
+http://www.linuxquestions.org/questions/blog/sfxpt-393704/simple-ubuntu-10-04x-lts-installation-that-allows-multiboot-3118/
+
+=== Preparation
+
+[source,shell]
+------------------------
+# Prepare source
+sudo mount -o loop iso/ubuntu-10.04.1-desktop-amd64.iso /mnt/iso1/
+# Prepare destination, HD/USB
+mount /dev/sdb2 /mnt/usbpen/
+------------------------
+
+=== Method 1, boot Ubuntu ISO directly from HD
+
+Copy /casper/vmlinuz, /casper/initrd.lz and /preseed from CD into HD/USB
+
+ cd /mnt/iso1/
+ rsync -vuaR casper/vmlinuz casper/initrd.lz preseed /mnt/usbpen
+
+Then add the following boot entry to your grub:
+
+------------------------
+title Ubuntu 10.04x LTS ISO
+  kernel /casper/vmlinuz boot=casper iso-scan/filename=/iso/ubuntu-10.04.1-desktop-amd64.iso file=/preseed/ubuntu.seed quiet splash --
+  initrd /casper/initrd.lz
+------------------------
+
+Note, if you use grub2, then you don't need to extract any file from CD. Just add the following boot entry to your grub2.cfg:
+
+------------------------
+menuentry "Ubuntu 10.04x LTS" {
+       loopback loop (hd0,3)/path/to/ISOs/ubuntu/lucid-desktop-i386.iso
+       linux (loop)/casper/vmlinuz boot=casper iso-scan/filename=/path/to/ISOs/ubuntu/lucid-desktop-i386.iso file=(loop)/preseed/ubuntu.seed quiet splash bootkbd=sg --
+       initrd (loop)/casper/initrd.lz
+}
+------------------------
+
+=== Method 2, boot without CD
+
+To allow better multiboot, this time we put everything into a sub-folder, 
+
+------------------------
+mkdir /mnt/usbpen/ubuntu
+cd /mnt/iso1/
+rsync -vuaR casper preseed /mnt/usbpen/ubuntu
+------------------------
+
+Then add the following boot entry to your grub:
+
+------------------------
+title Ubuntu 10.04x LTS Live
+  kernel /ubuntu/casper/vmlinuz file=/ubuntu/preseed/ubuntu.seed boot=casper initrd=/ubuntu/casper/initrd.lz ignore_uuid live-media-path=/ubuntu/casper quiet splash --
+  initrd /ubuntu/casper/initrd.lz
+------------------------
+
+=== Conclusion 
+
+As you can see, with the above frugal installation methods, it is very easy to install several of your favourite Linux into a single USB key. 
+
+To recap:
+
+- You don't need to get your existing multiboot partition wipe out by official USB installation.
+- You don't need to download or install any scripts or executables to install yourself.
+- Just a few commands from command line allow you to install Ubuntu into your existing multiboot partition as another entry.
+//- Choose one method, not both. 
+
+[[new]]
+== For recent Ubuntus
+
+I don't know starting from which Ubuntu version the old method stops working, but it's not working for Ubuntu 13.10 for sure. Took me nearly a week of info-seeking and trial-and-error to get it working again. Long story short, here are what my goals are and the key steps of the solution.
+
+=== What is the minimum set of files that need to copy from CD
+
+It turns out the minimum set of files that need to copy from CD are, the +.disk+ and +casper+, and optionally the +preseed+ folder: 
+
+ cd /mnt/iso1/
+ rsync -vuaR .disk casper preseed /mnt/usbpen
+
+Here is the syslinux/extlinux menu configure file to boot such disks:
+
+---------------------------
+default menu.c32
+prompt 0
+menu title Lubuntu
+timeout 100
+
+label ubnentry1
+ menu label ^Lubuntu Live
+ kernel /casper/vmlinuz
+ append initrd=/casper/initrd.lz file=/cdrom/preseed/lubuntu.seed boot=casper quiet splash --
+---------------------------
+
+That's it. As long as you make your disk bootable with syslinux/extlinux or grub as shown above, you are all set. 
+
+=== How to make it multibootable
+
+To multiboot, everything has to be in a sub-folder, instead all occupying the root folder. Let's install Lubuntu 13.10 under +boot/lub1310+
+
+
+ cd /mnt/iso1/
+ rsync -vuaR .disk casper /mnt/usbpen/boot/lub1310
+ cd /mnt/usbpen
+ ln -s boot/lub1310/.disk . 
+
+I use ext2 for my USB partition (and extlinux to boot it). That's why I can use +ln+ to create symbol links. The last step of symbol linking is vital for the usb key to boot.
+
+Here is the syslinux/extlinux menu configure file:
+
+--------------------------------
+UI menu.c32
+prompt 0
+
+menu title Debian Usb Key Boot Menu
+timeout 100
+default lub1310
+
+Label ub1310
+  menu label ^Ubuntu Saucy
+  kernel /boot/ub1310/casper/vmlinuz
+  append initrd=/boot/ub1310/casper/initrd.lz boot=casper live-media-path=/boot/ub1310/casper noprompt showmounts --
+
+Label lub1310
+  menu label ^Lubuntu Live
+  kernel /boot/lub1310/casper/vmlinuz
+  append initrd=/boot/lub1310/casper/initrd.lz boot=casper live-media-path=/boot/lub1310/casper noprompt showmounts --
+--------------------------------
+
+As you can see, the above frugal installation method allows each different distro resides in different sub-folders (under /boot). Thus it is very easy to put several of them into a single USB key. 
+

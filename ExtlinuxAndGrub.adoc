@@ -1,0 +1,135 @@
+= Chainloading Extlinux from Grub
+
+:blogpost-categories: linux,boot,extlinux,grub
+
+Chainloading an extlinux powered logical partition using Grub would fail. 
+And here is why. 
+
+The topic is discussed thoroughly in the thread titled "*Is it possible to chainload EXTLINUX from GRUB*", which available at many places on the Internet. The most clear and convenient place to follow the whole discussed is at,
+http://web.archiveorange.com/archive/v/mwjwmvjuKo7hN5uoyVyb
+
+This is the summary of that thread. 
+
+NB, Grub4dos is claimed to be able to chainload extlinux from logical partition. 
+The thorough discussion is at, 
+
+*Chainloading bootsector of logical partition with EXTLINUX installed, fails. Patch included* +
+http://reboot.pro/topic/10262-chainloading-bootsector-of-logical-partition-with-extlinux-installed-fails-patch-included/
+
+pass::[<!--more-->]
+
+== The Problem
+
+=== case 1
+
+I installed extlinux on a logical partition, using a command like 
+"extlinux -i /mnt/partition". I want to boot to that partition, so put 
+something like
+
+ root (hd0, 4)
+ chainloader +1
+ boot
+
+in an entry in GRUB. SYSLINUX gets loaded but it gives a "Boot 
+error" message and halts. 
+
+=== case 2
+
+I then tried placing EXTLINUX on a primary partition and indeed I 
+successfully chainloaded it. However this doesn't seem to work when I put 
+it on a logical partition. 
+
+== The Explanation
+
+=== Simple
+
+[quote, Gavin D. Smith]
+____________
+However this doesn't seem to work when I put it on a logical partition. Is
+there a reason why there might be a difference between the two types?
+____________
+
+Not if the chainloading code is written properly.  Chainloading onto a 
+logical partition means you have to load not the MBR but the pseudo-MBR 
+containing the logical partition in question at address 0x600 and point 
+DS:SI to it.
+
+Sounds like a Grub problem to me.
+
+-hpa (H. Peter Anvin)
+
+=== In Depth
+
+[quote, Gavin D. Smith]
+____________
+To see if Grub has a problem chainloading onto a logical partition I tried
+installing GRUB onto the logical partition, and it was successfully loaded.
+I also tried LILO on the logical partition, and it also was successfully
+loaded. However trying extlinux I got the same "Boot error" message as
+before. . . I know that the syslinux loader is loaded because "Boot error"
+is a message in that loader. So you say this message is due to some
+registers not being set correctly?
+____________
+
+You're assuming that just because GRUB and LILO can be loaded that it is 
+all done correctly.  GRUB and LILO might not rely on, for example, the 
+DS:SI pointer (given their design methodology I would almost assume they 
+don't.)
+
+For debugging, I would run this in an simulator and set a breakpoint at 
+0:7C00h.  This will be hit several times, one of which will be EXTLINUX 
+entry; at this point examine the registers, and the memory pointed to by 
+DS:SI (16 bytes) and ES:DI (64 bytes or so.)
+
+The registers are supposed to have the following values:
+
+ DL is supposed to have the drive number.
+ DS:SI is supposed to point to the 16-byte partition entry, which 
+ typically should be located in memory between address 0x600 and 0x800.
+ ES:DI is supposed to point to the $PnP header.
+
+=== Case study 
+
+Gavin D. Smith wrote:
+
+ > Here we go. The following is chainloading extlinux on a primary 
+ > partition, which succeeds.
+
+(DS:SI points to a proper partition table entry)
+
+xp /16b ds:si [bochs]: 0x000007ce <bogus+ 0>: 0x80 0x00 0x01
+0x20 0x83 0x03 0x20 0x3f 0x000007d6 <bogus+ 8>: 0x00 0x10 0x00 0x00 0x00
+0x10 0x00 0x00
+
+This refers to a partition starting at sector 0x1000 (4096), which is 
+4096 sectors long.  This is your c.img2 partition.
+Hide quoted text
+
+ > The following is where the problem is, chainloading extlinux on a 
+ > logical partition.
+
+(DS:SI points to a bogus partition table entry)
+
+<bochs:5> xp /16b ds:si [bochs]: 0x000007be <bogus+ 0>: 0x80 0x01 0x01
+0x60 0x83 0x03 0x20 0x7e 0x000007c6 <bogus+ 8>: 0x20 0x00 0x00 0x00 0x60
+0x0f 0x00 0x00
+
+This refers to a partition starting at sector 0x20 (32), and which is 
+0x0f60 (3936) sectors long.  It has the correct length, but the wrong 
+start address.
+
+This is the raw binary copy of the meta-partition table entry, in your 
+case sector 12288.  The problem is that that doesn't give the boot 
+loader the information it wants, because the start field is *relative* 
+to the beginning of the partition.  In order to chainload a logical 
+partition, the chainloader needs to adjust the start field with the 
+position of the boot field, so that it ends up with 12288+32 = 12320 
+(0x3020), which is the start of your logical partition.
+Show quoted textFor additional information, see:
+
+http://www.win.tue.nl/~aeb/partitions/partition_tables.html
+
+as well as com32/modules/chain.c in the syslinux distribution.
+
+-hpa
+

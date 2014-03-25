@@ -1,0 +1,97 @@
+= Booting UEFI Linux with Grub as boot loader
+
+:blogpost-categories: Debian,Ubuntu,linux,boot,partition,UEFI,grub
+
+To install/dual-boot Linux on an EFI-capable computer with an pre-existing operating system, like Windows 8, the https://help.ubuntu.com/community/UEFI[UEFI - Community Help Wiki] has covered it nicely. Everything happens auto-magically. But what's going on under the hood? What the steps are if I want to manually setup/triple-boot a second Linux system on this machine?
+
+pass::[<!--more-->]
+
+== EFI, GPT and ESP
+
+https://wiki.archlinux.org/index.php/Grub#UEFI_systems_2 +
+
+BIOS boot needs a MBR (Master Boot Record), and https://wiki.archlinux.org/index.php/Grub#UEFI_systems[EFI/UEFI] boot needs a https://wiki.archlinux.org/index.php/Grub#UEFI_systems[ESP] (EFI System Partition). Part of the https://wiki.archlinux.org/index.php/Unified_Extensible_Firmware_Interface[UEFI] (Unified Extensible Firmware Interface) Specification is the new style of partitioning called https://wiki.archlinux.org/index.php/GPT[GPT] (GUID Partition Table).
+
+ESP is needed on every disc you want to boot using EFI. If you are installing Linux on an EFI-capable computer with an already-working operating system, like Windows 8 for example, it is very likely that you already have an ESP. To check for GPT and for an ESP, use parted as root to print the partition table of the disk you want to boot from:
+
+ # parted /dev/sda print
+
+For GPT, you are looking for "Partition Table: gpt". For EFI, you are looking for a small (512 MiB or less) partition with a vfat file system and the boot flag enabled. On it, there should be a directory named "EFI". If these criteria are met, this is your ESP. More precisely, the partition will have a structure like this:
+
+  /EFI/Boot/bootx64.efi
+
+There may be a folder /EFI/Microsoft/Boot and the efi file booting windows may be bootmgr.efi
+
+
+Make note of the partition number. You will need to know which one it is, so you can mount it later on while installing GRUB to it.
+
+== Install Grub2-efi to the ESP
+
+http://docs.slackware.com/howtos:slackware_admin:set_up_grub_as_boot_loader_on_uefi_based_hardware +
+https://wiki.archlinux.org/index.php/Grub#UEFI_systems_2 +
+
+First, mount the ESP at your preferred mountpoint (usually /boot/efi, hereafter referred to as $esp). 
+
+Now, install the GRUB UEFI application to $esp/EFI/grub and its modules to /boot/grub/x86_64-efi:
+
+ # esp=/boot/efi
+ # grub-install --target=x86_64-efi --efi-directory=$esp --bootloader-id=grub --recheck --debug
+
+Note:
+
+* Without --target or --directory option, grub-install cannot determine for which firmware to install. In such cases grub-install will print source_dir does not exist. Please specify --target or --directory.
+* --efi-directory and --bootloader-id are specific to GRUB UEFI. --efi-directory specifies the mountpoint of the ESP. It replaces --root-directory, which is deprecated. --bootloader-id specifies the name of the directory used to store the grubx64.efi file.
+* If you notice carefully, there is no <device_path> option (Eg: /dev/sda) at the end of the grub-install command unlike the case of setting up GRUB for BIOS systems. Any <device_path> provided will be ignored by the install script, as UEFI bootloaders do not use MBR or Partition boot sectors at all.
+* To do this, you need to be booted using UEFI and not BIOS, or grub-install will show errors.
+* If you are installing from live CD, make sure you have chrooted into the installed system before installing grub. Using the CD's own grub installation scripts may result in an invalid grub.cfg, or other problems that will prevent the system from booting.
+
+Configure grub.cfg with
+
+ # grub-mkconfig -o /boot/grub/grub.cfg
+
+== Install Grub2-efi 
+
+http://wiki.gentoo.org/wiki/GRUB2 +
+
+To install GRUB:
+
+  root # grub2-install --target=x86_64-efi
+
+This will install grub in /boot/grub, copy the core image to /boot/efi/EFI/gentoo/grubx64.efi, and call efibootmgr to add a boot entry, e.g.:
+
+  efibootmgr -q -c -d /dev/sda -p 2 -w -L grub -l \EFI\grub\grubx64.efi
+
+efibootmgr may fail if the system is not already booted in EFI mode. If so, you will need to boot your system in EFI mode using an EFI shell or a suitable EFI boot media.
+
+== References
+
+=== secure boot
+
+http://ubuntuforums.org/showthread.php?t=2179171&p=12810432#post12810432
+
+Ubuntu will boot with secure boot, but you have to have Installed in UEFI mode with secure boot on or run Boot-Repair with secure boot on. Then it installs the signed versions of the kernel & grub that include the Microsoft signing key. You do not have signed versions, so you only can boot with secure boot off.
+
+Better to turn secure boot off, anyway.
+
+oldfred; October 8th, 2013
+
+=== Windows Fastboot
+
+http://ubuntuforums.org/showthread.php?t=2179171&p=12810967#post12810967
+
+Fastboot is hidden away in the power options found inside the Control Panel. I cannot remember exactly where in those options so I turned off all forms of hibernation and suspend. This was done to allow for the adding of files to a separate Data partition while using Ubuntu so Windows would be able to see them as well.
+
+With Fastboot enabled Windows does not unmount the partitions (drives) and will not make the necessary adjustments to the Master File Table of any partitions that you write to.
+
+westie457; October 8th, 2013
+
+=== Referenced urls
+
+http://wiki.gentoo.org/wiki/GRUB2 +
+http://docs.slackware.com/howtos:slackware_admin:set_up_grub_as_boot_loader_on_uefi_based_hardware +
+https://wiki.archlinux.org/index.php/Grub#UEFI_systems_2 +
+https://wiki.archlinux.org/index.php/GPT +
+http://ubuntuforums.org/showthread.php?t=2179171 +
+ +
+ +
+ +
