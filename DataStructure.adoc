@@ -1,0 +1,115 @@
+= Data Structures + Algorithms = Programs
+
+:blogpost-categories: programming,go
+
+Over the course of my programming life, I had come to the conclusion again and again that a good data structure is the key for a good program. So many times, I found that a sub-optimal or total-cumbersome program can be (dramatically) simplified by choosing the correct data structure.
+
+Choosing the correct data structure is the most important part of the programming steps, because your algorithm will go along with your data structure. Yet, this has been overlooked by many people, which is especially true to those who turn to programming half way during their life, who lack the systematic training on the fundamental programming concepts. 
+
+What's interesting is that, I found those people who believe that they are good programmers, and who are not afraid to show off their programming skills on the Internet, some of them still don't understand the importance of designing a proper data structure in the first place. 
+
+pass::[<!--more-->]
+
+The example I found is the http://hackgolang.blogspot.ca/2010/09/snail-in-golang.html[snail problem]. Take a look at all programs (algorithms) posted there, both in the blog and the comments, you will see people nesting for loops in for loops trying to solve the problem, or using obscured algorithms trying to solve it. 
+
+That really nudged my interest to try write one of my own, and I did http://pastie.org/9075605. I'm still learning +Go+, and I don't what I've done is the best way in +Go+, but imho, my solution is the most straightforward one, because 
+
+With the proper data structure defined, the program just describe how the snail 
+http://pastie.org/9075605#94-101[moves and turns]:
+
+-----------------------
+    values[y][x] = value
+    x += sm[d].x
+    y += sm[d].y
+    if x < sb.xmin || x > sb.xmax || y < sb.ymin || y > sb.ymax {
+      x -= sm[d].x
+      y -= sm[d].y
+      d, x, y = turn(d, x, y)
+    }
+-----------------------
+
+And http://pastie.org/9075605#107-123[turning can be easily described] with the proper data structure as well:
+
+-----------------------
+  ox, oy = x, y
+  od = (d + 1) % 4
+
+  switch d {
+  case dRight:
+    sb.ymin += 1
+    oy += sm[od].y
+  case dDown:
+    sb.xmax -= 1
+    ox += sm[od].x
+  case dLeft:
+    sb.ymax -= 1
+    oy += sm[od].y
+  case dUp:
+    sb.xmin += 1
+    ox += sm[od].x
+  }
+-----------------------
+
+That's pretty much everything. The rests are the overheads. The whole position-filling algorithm finishes in a single loop, with O(n) complexity. NB, there isn't any comment in above code, because if you look at the whole program, you will find that the comment is not necessary, because the comment for the data or data structure will make everything clear. 
+
+-----------------------
+////////////////////////////////////////////////////////////
+// Constant and data structure definitions
+
+// Snail-moving Directions
+const (
+  dRight = iota
+  dDown
+  dLeft
+  dUp
+)
+
+// Snail-moving Boundary
+type tBoundary struct {
+  xmin, xmax, ymin, ymax int
+}
+
+// Snail-moving Movement instruction
+type tMove struct {
+  // Direction
+  d int
+  // Position adjustment
+  x, y int
+}
+
+////////////////////////////////////////////////////////////
+// Global variables definitions
+
+// snail movement & boundary
+var sb tBoundary
+var sm = []tMove{
+  {dRight, 1, 0},
+  {dDown, 0, 1},
+  {dLeft, -1, 0},
+  {dUp, 0, -1},
+}
+-----------------------
+
+-----------------------
+$ go run DataStructure-Snail.go 3
+1 2 3 
+8 9 4 
+7 6 5 
+
+$ go run DataStructure-Snail.go 6
+ 1  2  3  4  5  6 
+20 21 22 23 24  7 
+19 32 33 34 25  8 
+18 31 36 35 26  9 
+17 30 29 28 27 10 
+16 15 14 13 12 11 
+
+$ go run DataStructure-Snail.go 1
+1 
+-----------------------
+
+http://en.wikipedia.org/wiki/Niklaus_Wirth[Niklaus Wirth]'s excellent book http://en.wikipedia.org/wiki/Algorithms_%2B_Data_Structures_%3D_Programs[Algorithms + Data Structures = Programs] stresses that http://en.wikipedia.org/wiki/Algorithms_%2B_Data_Structures_%3D_Programs[algorithms and data structures are inherently related], a valuable point which has sadly been overlooked by many people. I bet those people lack the systematic training/education on the http://en.wikipedia.org/wiki/Dynamic_programming[dynamic programming] as well. To those people, I'd like to stress that, 
+
+Programs = Data Structures + Algorithms
+
+

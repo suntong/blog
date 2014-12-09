@@ -1,0 +1,79 @@
+= Change Sendmail MSA Submission Port
+
+:blogpost-categories: linux,partition
+
+== Synopsis
+
+I'm getting "Connection timed out" errors from some of the email servers, like google:
+
+ $ tail -1 /var/log/mail.log
+ Jun 15 15:55:52 coral sm-mta[9924]: s5FAo29p007675: to=<me@gmail.com>, delay=09:05:50, xdelay=00:10:36, mailer=esmtp, pri=2550569, relay=alt4.gmail-smtp-in.l.google.com. [74.125.136.26], dsn=4.0.0, stat=Deferred: Connection timed out with alt4.gmail-smtp-in.l.google.com.
+
+The following is a detailed analysis of the problem and the solution under Debian/Ubuntu. 
+
+pass::[<!--more-->]
+
+== Analysis / Reason
+
+http://serverfault.com/questions/386432/sendmail-connection-timeout[Check the basic SMTP delivery], try using telnet to port 25 to see if we're able to connect to the destination host...
+
+  $ dig mx gmail.com
+  ;; ANSWER SECTION:
+  gmail.com.              3280    IN      MX      20 alt2.gmail-smtp-in.l.google.com.
+  gmail.com.              3280    IN      MX      10 alt1.gmail-smtp-in.l.google.com.
+  gmail.com.              3280    IN      MX      5 gmail-smtp-in.l.google.com.
+  gmail.com.              3280    IN      MX      30 alt3.gmail-smtp-in.l.google.com.
+  gmail.com.              3280    IN      MX      40 alt4.gmail-smtp-in.l.google.com.
+
+  $ telnet alt4.gmail-smtp-in.l.google.com 25
+  Trying 74.125.136.27...
+  Trying 2a00:1450:4013:c01::1a...
+  telnet: Unable to connect to remote host: Network is unreachable
+
+Since not all emails are blocked, we cans tell that the problem is not at local side, but the remote SMTP server. I.e., google SMTP server is blocking the port 25 access.
+
+Now that google is blocking port 25, let's take a look at port 587 which is http://forums.fedoraforum.org/showthread.php?t=32301[a secondary standard]
+
+  $ telnet smtp.gmail.com 587
+  Trying 74.125.142.108...
+  Connected to gmail-smtp-msa.l.google.com.
+  Escape character is '^]'.
+  220 mx.google.com ESMTP t16sm12628817igr.14 - gsmtp
+  ^]
+  telnet> quit
+  Connection closed.
+
+We can conclude that google is blocking port 25 while accepting email submission from port 587. Hence the problem now becomes, 
+
+How to configure http://forums.fedoraforum.org/showthread.php?t=240432[sendmail to use the 587 MSA submission port?] I'd rather try that first before bringing out the big gun of smart host relaying through my ISP. 
+
+== Solution
+
+http://major.io/2007/05/21/enable-submission-port-587-in-sendmail/#comment-15953[You can do this] by using the http://www.sendmail.com/sm/open_source/docs/configuration_readme/[DAEMON_OPTIONS] macro in the sendmail.mc file. 
+
+Make sure you have http://forum.parallels.com/showthread.php?89279-Proper-edit-of-sendmail-mc-for-port-587-other&p=368362&viewfull=1#post368362[both of these lines] in your sendmail.mc. I.e, after you enable port 587, you http://forum.parallels.com/showthread.php?89279-Proper-edit-of-sendmail-mc-for-port-587-other&p=368414&viewfull=1#post368414[must explicitly enable port 25 as well], as follows:
+
+ DAEMON_OPTIONS(`Port=smtp, Name=MTA')dnl
+ DAEMON_OPTIONS(`Port=submission, Name=MSA, M=Ea')dnl
+
+However, I found that both of the above are set in the sendmail.mc that comes default in Debian/Ubuntu:
+
+	$ grep ^DAEMON_OPTIONS /etc/mail/sendmail.mc
+	DAEMON_OPTIONS(`Family=inet,  Name=MTA-v4, Port=smtp, Addr=127.0.0.1')dnl
+	DAEMON_OPTIONS(`Family=inet,  Name=MSP-v4, Port=submission, M=Ea, Addr=127.0.0.1')dnl
+
+Yet, I'm still getting that "Connection timed out" errors.
+
+
+
+The main configuration file for Sendmail is /etc/mail/sendmail.cf, which is not intended to be manually edited. Instead, http://docs.oracle.com/cd/E37670_01/E41138/html/ch15s04.html[make any configuration changes] in the /etc/mail/sendmail.mc file.
+
+Now http://serverfault.com/questions/224237/can-i-change-my-sendmail-port[check the ports via netstat] to ensure they are open and listening as follows:
+
+  $ netstat -lntp | grep sendmail
+  tcp        0      0 127.0.0.1:25            0.0.0.0:*               LISTEN      1359/sendmail: MTA:
+  tcp        0      0 127.0.0.1:587           0.0.0.0:*               LISTEN      1359/sendmail: MTA:
+
+To http://forum.parallels.com/showthread.php?89279-Proper-edit-of-sendmail-mc-for-port-587-other&p=368414&viewfull=1#post368414[check via lsof]:
+
+ lsof +M -i4 | grep sendmail

@@ -1,0 +1,81 @@
+= The words reverse problem
+
+:blogpost-categories: programming,go
+
+I was looking for some interesting data structure problems to reveal if the candidate lacks the systematic thinking on the fundamental programming concepts, but I haven't found one so far, because the tree related problems are over-exploited, and graph or dynamic programming are mostly too complicated to finish in a short time. My http://sfxpt.wordpress.com/2014/04/12/data-structures-algorithms-programs/[last post] could be one, but I have never seen anyone else but me solving it via utilizing proper data structure.
+
+While kept looking for such interesting problems, I came upon another one that is at least simple enough to be finished in a short time. Here is its formal definition.
+
+pass::[<!--more-->]
+
+***********************************************
+*The words reverse problem*
+
+Given a string say "I am a human being" the output will reverse words but nothing else, i.e., it should reverse all http://www.cplusplus.com/reference/cctype/isalnum/[alphanumeric] within each word but otherwise preserve everything. Eg: output should be +"I ma a namuh gnieb"+.
+
+NB, 
+
+- No build-in string reverse function or any form of loop statement except the
+single one that iterates through the given string in a single pass should be
+used. I.e., the program should finishes in O(N) time instead of O(2N) time.
+
+- Pay attention to what the "reverse words but nothing else" requirement
+implies. Design more test data to proof that the requirement is not violated.
+***********************************************
+
+Again, it falls within the criteria of the problems that I'm looking for
+
+- *Interesting*. Balance tree might interest some people but not most of them.
+- *Easy definition*. This one and my http://sfxpt.wordpress.com/2014/04/12/data-structures-algorithms-programs/[last post], they are almost self-explanatory. 
+- *Self-sufficient*. No need to depend on external data to function.
+- *Simple*. Easy to understand what to do, and not too long to finish it.
+- *Revealing*. Though simple enough, yet it is also hard enough to reveal how good the candidate is of his/her programming skills. 
+
+
+I've post my own answer at http://pastie.org/9115310, including my own test cases and answers. 
+
+You can see that it is in fact very short. Here is how the words reverse function is call in main:
+
+    fmt.Printf("'%s'.\n", reverseWords(rs))
+
+and here is how they are defined. 
+
+-----------------------
+// reverseWords reverses words in the given string
+func reverseWords(rs []rune) (ret string) {
+  start := 0
+  for start < len(rs) {
+    _ret, next := reverseIt(rs, start, false)
+    ret += _ret
+    start = next
+  }
+  return
+}
+
+// reverseIt returns the reversed word if at the start of the word,
+//  else returns the none-word character
+func reverseIt(rs []rune, start int, inWord bool) (ret string, next int) {
+  // returns the none-word character if at it
+  if !inWord && !IsAlnum(rs[start]) {
+    ret = string(rs[start])
+    next = start + 1
+    return
+  }
+
+  // == reversing the word
+  // -- stop condition
+  _next := start + 1
+  if _next >= len(rs) || !IsAlnum(rs[_next]) {
+    ret = string(rs[start])
+    next = _next
+    return
+  }
+
+  // -- reversed word building
+  _ret, next := reverseIt(rs, start+1, true)
+  ret = _ret + string(rs[start])
+  return
+}
+-----------------------
+
+That's it! The rests are the overheads or comments. 

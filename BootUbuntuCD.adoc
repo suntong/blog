@@ -1,0 +1,67 @@
+= Boot Ubuntu 14.10 directly from CD image
+
+:blogpost-categories: Linux,Ubuntu,boot,partition,extlinux
+
+Yeah ~ ~ ~, I am able to directly boot Ubuntu ISO image from the hard drives again, with a simpler solution. So no CD/DVD burning, and no slow CD/DVD speed suffering any more. Here is how.
+
+pass::[<!--more-->]
+
+Once again (and has-always-been), this is only for power users, i.e., it is about frugal booting Ubuntu ISO image directly from HD or USB without burning any CD/DVD at first, or without even depending on extracting the CD content. It is not meant for beginners but those who like command line more than http://sfxpt.wordpress.com/2014/02/18/ubuntu-frugal-multiboot-installation-without-burning-any-cddvd/[GUI tools].
+
+== Prepare
+
+[source,shell]
+------------------------
+# Prepare source
+sudo mount -o loop iso/xubuntu-14.10-desktop-amd64.iso /mnt/iso1/
+
+# Prepare destination, HD/USB
+mount /dev/sdb2 /mnt/usbpen/
+bootmnt=/mnt/usbpen/
+# Or, e.g.
+mount /dev/sda5 /mnt/sda5/
+bootmnt=/mnt/sda5/
+
+cd $bootmnt
+bootdir=boot/Ubuntu14.10
+mkdir -p $bootdir
+------------------------
+
+The +$bootdir+ is to allow better multiboot, i.e. we are putting everything into a sub-folder, 
+
+== boot Ubuntu ISO directly from HD
+
+Copy +vmlinuz+, +initrd+ and +preseed+ from CD into HD/USB:
+
+[source,shell]
+------------------------
+cd /mnt/iso1/
+rsync -vuaR casper/vmlinuz* casper/initrd.lz preseed $bootmnt/$bootdir
+find $bootmnt/$bootdir -ls
+# back to $bootmnt
+cd $bootmnt
+------------------------
+
+Then add the following boot entry. Nowadays I use https://docs.google.com/document/d/10PfqpTw-pTUofbH4ankf2FjbF5tcxFSSw1KFMTJfBfY/[Extlinux/Syslinux]:
+
+------------------------
+Label Ubuntu14.10
+        menu label Ubuntu 14.10 ^Utopic ISO
+        kernel /boot/Ubuntu14.10/casper/vmlinuz.efi
+        append initrd=/boot/Ubuntu14.10/casper/initrd.lz boot=casper iso-scan/filename=/iso/xubuntu-14.10-desktop-amd64.iso file=/boot/Ubuntu14.10/preseed/ubuntu.seed noeject noprompt ignore_uuid --
+------------------------
+
+That's it. As long as you've made your disk bootable with syslinux/extlinux, it should just boot up fine.
+
+== Summary 
+
+As you can see, with the above frugal installation methods, it is very easy to install several of your favourite Linux into a single disk. 
+
+Recap:
+
+- You don't need to get your existing multiboot partition wipe out by the official HD/USB installation, and,
+- You don't need to download or install any fancy scripts or executables to do the installation yourself.
+- Each different distro resides in different sub-folders (under /boot). Thus it is very easy to put several of them into a single HD/USB. 
+- With just a few commands from command line, you can install Ubuntu into your existing multiboot partition as another entry.
+- Unlike other methods, you don't need to extract the CD content in order to boot. What's copied to disk are just a very few and small files, all the rest are still intact in the .iso file. This, i.e., saving the original .iso file and saving the disk space by not extracting hundreds or even thousands of meg of files, is very important to me. 
+- NB, this works for Ubuntu, but not for BackTrack, because http://sfxpt.wordpress.com/2014/02/18/ubuntu-frugal-multiboot-installation-without-burning-any-cddvd/[when I tried it last time], the BackTrack +casper+ does not support +iso-scan+ yet. You still need to use the http://sfxpt.wordpress.com/2014/02/18/ubuntu-frugal-multiboot-installation-without-burning-any-cddvd/[old method].

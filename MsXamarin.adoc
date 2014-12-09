@@ -1,0 +1,19 @@
+= Nice comeback for Microsoft
+
+:blogpost-categories: Microsoft,mobile,Android
+
+I’m a Windows developer by trade and Debian developer by passion. For the past two decades, I’ve been wishing and longing that Microsoft will go down or even go under, so that all Windows programmers like me can be freed from abysmal world that Microsoft put us in (and don’t get me started on that one, basically every time I jump through the hoops to finally master the “new” thing that Microsoft force down through our throat, it’s about the time for Microsoft to announce that it is abandoning it and moving on to something even newer and more shiny …).
+
+That two-decade hatred might soon be the past, because for the first time, I am wishing Microsoft to have a nice comeback. Well speaking of which, as matter of the fact, MS might has always been doing great, and better, but in my hate-centered-and-narrowed mind, there is always a voicing convincing me that it is going down. Anyway,
+
+The comeback is its new mobile developing platform http://xamarin.com/[xamarin].
+
+pass::[<!--more-->]
+
+Take a look at this http://channel9.msdn.com/Events/Visual-Studio/Connect-event-2014/512[]. Unbelievable! To me, for a follower lagging far behind in mobile developing, I have to say, Microsoft’s Visual Studio 2015 is extremely promising. I’m “falling in love at first sight”, because,
+
+For decades, the iOS Object-C developers think that the Android Java developers are crazy and Android developers think the same to them. When the JavaScript developers come along and promoting the none-native mobile developing, both the iOS and Android developers finally agree with each other on thinking that the JavaScript developers are truly crazy. I.e., It is the disconnection between these three camps in the mobile developing world that I hate the most, even more that I hate Microsoft.
+
+So for the first time ever, we as developers are seeing the light towards the end of the tunnel that finally the mobile developing can be united under a single platform. I.e., we don’t need an iOS team and an Android team doing exactly the same thing (only their devices are different) any more. Instead, a single team would be good for all the devices that xamarin supports.
+
+THIS IS HUGE. Never underestimate how enterprises will welcome such move from Microsoft, and never underestimate how much influences Microsoft has on the developers worldwide. If Google is not doing anything, then this unified mobile developing platform will be the future.

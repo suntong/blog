@@ -1,0 +1,117 @@
+= Use dbab under Ubuntu 14.04 Trusty
+
+:blogpost-categories: ad blocking,dnsmasq,linux,dbab,Debian,Ubuntu,DHCP,DNS
+
+Documenting the steps I use to install/configure +dbab+ under Ubuntu 14.04 Trusty. All in all, nothing unusual as before, as long as you don't touch the new feature in the +/etc/network/interfaces+ and ignore the '/etc/network/interfaces.d' directory. I only notice the new feature now (until Ubuntu 14.04), and was curious to give it a try. But it turns out to be a dead-end detour. Details at http://superuser.com/questions/751995/setup-static-ip-under-ubuntu-14-04-trusty[Setup static IP under Ubuntu 14.04 Trusty].
+
+Now back to the steps I use...
+
+pass::[<!--more-->]
+
+== Switch from dynamic IP to static IP
+
+=== Static IP settings
+
+From the 'interfaces' man page, what should be set:
+
+--------------------------------------
+   The static Method
+       This method may be used to define Ethernet interfaces  with  statically
+       allocated IPv4 addresses.
+
+       Options
+
+              address address
+                     Address (dotted quad/netmask) required
+
+              netmask mask
+                     Netmask (dotted quad or CIDR)
+
+              broadcast broadcast_address
+                     Broadcast  address  (dotted quad, + or -). Default value:
+                     "+"
+
+              metric metric
+                     Routing metric for default gateway (integer)
+
+              gateway address
+                     Default gateway (dotted quad)
+--------------------------------------
+
+=== Configure the static IP
+
+Configure the static interface, using the exiting info:
+
+[source,shell]
+--------------------------------------
+ifconfig | awk -F':' '/^eth/{ ethdev=$1; sub(/ .*/, "", ethdev); getline; addr=$2; sub(/ .*/, "", addr); printf "\nauto %s\niface %s inet static\n\taddress %s\n\tnetmask %s\n", ethdev, ethdev, addr, $4 }' | tee -a /etc/network/interfaces
+
+route | awk ' $1 == "default" { print "\tgateway " $2 }'  | tee -a /etc/network/interfaces
+
+$ cat /etc/network/interfaces
+# interfaces(5) file used by ifup(8) and ifdown(8)
+# Include files from /etc/network/interfaces.d:
+source-directory /etc/network/interfaces.d
+
+auto eth0
+        iface eth0 inet static
+        address 192.168.2.102
+        netmask 255.255.255.0
+        gateway 192.168.2.1
+--------------------------------------
+
+This setting has proved to be working, so we can conclude that 'network' & 'broadcast' are indeed no longer necessary any more. Some people also set 'dns-nameservers' there, but I don't think it even works because it is not even listed in the 'interfaces' man page.
+
+== Add a second static IP address
+
+Add a second static IP address for the Pixel server, the 
+http://sfxpt.wordpress.com/2011/02/21/the-best-ad-blocking-method/#Create_the_Pixelserv_ad_blocking_server[ad blocking server].
+
+[source,shell]
+--------------------------------------
+% cat <<EOF >> /etc/network/interfaces
+        # add a 2nd ip address
+        post-up ip addr add dev eth0 192.168.2.101/24
+        pre-down ip addr del dev eth0 192.168.2.101/24
+EOF
+
+% cat /etc/network/interfaces
+# interfaces(5) file used by ifup(8) and ifdown(8)
+# Include files from /etc/network/interfaces.d:
+source-directory /etc/network/interfaces.d
+
+auto eth0
+iface eth0 inet static
+        address 192.168.2.100
+        netmask 255.255.255.0
+        gateway 192.168.2.1
+        # add a 2nd ip address
+        post-up ip addr add dev eth0 192.168.2.101/24
+        pre-down ip addr del dev eth0 192.168.2.101/24
+--------------------------------------
+
+
+== Install dbab
+
+Installing +dbab+, nothing unusual as before:
+
+[source,shell]
+--------------------------------------
+% apt-get update 
+
+% apt-get install dbab
+The following extra packages will be installed:
+  curl dnsmasq
+Suggested packages:
+  resolvconf
+The following NEW packages will be installed:
+  curl dbab dnsmasq
+0 upgraded, 3 newly installed, 0 to remove and 0 not upgraded.
+Need to get 145 kB of archives.
+After this operation, 482 kB of additional disk space will be used.
+Do you want to continue? [Y/n] ...
+--------------------------------------
+
+For the rest, e.g., configuring dbab etc, it's the same 
+http://sfxpt.wordpress.com/2014/01/05/the-best-ad-blocking-method-in-a-package/#installation[as before] as well. 
+

@@ -1,0 +1,23 @@
+= The Secret Behind the Auto Proxy Setting
+
+:blogpost-categories: dnsmasq,linux,dbab,Debian,Ubuntu,DHCP,DNS,WPAD
+
+While most people surf the Internet for pleasure, I mostly browse for knowledge. I.e., there will be lots of times that I need to revisit a page again and again. Hence, I configured my +squid+ local http caching server. All machines in my home are using it, so even if I browse back to the page again on a different machine, the page loading will be still lightening fast as they all contribute to the +squid+ caching pool. I'm happy with it. 
+
+However, there are times that my friends or colleagues coming to my home. If that happens, mostly likely we will be focusing on the same thing, meaning, we will be browsing the same sites, and same pages. The problem is, despite that the sites/pages have been cached locally, my visitors can't easily use it, and have to request from outside each on their own. I'm not happy with it, and now decided to deal with it.
+
+This prompted me to look into the mechanism behind all the browser's automatic proxy settings. Can I setup something similar in my home so that my visitors can enjoy my caching server easily?
+
+pass::[<!--more-->]
+
+It turns out to be very easy. There are two mechanisms involved:
+
+- The first is an old one -- *PAC*, Proxy Auto Configuration, which is based on a javascript function that takes the requested URL by the browser, processes it, and returns instructions to the browser on where to get the requested web page (or any other file).
+- The second one, *WPAD*, Web Proxy Automatic Discovery, extends the PAC mechanism by providing the Automatic Proxy Configuration URL through standard network services such as DNS and DHCP. 
+
+The best mechanism that covers as much cases as possible is the DNS-based WPAD. All these look not that difficult. It should not be difficult for me to put them into my http://sfxpt.wordpress.com/2014/05/11/use-dbab-under-ubuntu-14-04-trusty/[+dbab+ package], which is the package that I put together for http://sfxpt.wordpress.com/2014/05/11/use-dbab-under-ubuntu-14-04-trusty/["Dnsmasq-Based Ad-Blocking"].
+
+I've collected all the relevant knowledge http://goo.gl/CKzc30[here] at docs.google.com, and will work on my http://sfxpt.wordpress.com/package/#dbab[+dbab+ package] next, and report back.
+
+Stay tuned.
+
