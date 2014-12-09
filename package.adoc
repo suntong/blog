@@ -7,6 +7,7 @@
 
 - http://sfxpt.wordpress.com/package/dbab/[What is dbab].
 - http://sfxpt.wordpress.com/2014/01/05/the-best-ad-blocking-method-in-a-package/[Why I think dbab is the best ad blocking method].
+- http://sfxpt.wordpress.com/2014/11/30/use-new-dbab-to-set-proxy-automatically/[Installation guide for dbab]
 
 [[glimpse]]
 == glimpse

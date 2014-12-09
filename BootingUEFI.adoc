@@ -22,8 +22,22 @@ For GPT, you are looking for "Partition Table: gpt". For EFI, you are looking fo
 
 There may be a folder /EFI/Microsoft/Boot and the efi file booting windows may be bootmgr.efi
 
-
 Make note of the partition number. You will need to know which one it is, so you can mount it later on while installing GRUB to it.
+
+Another way to look at the partition table is:
+
+ # lsblk --fs
+
+== Install Grub2-efi packages
+
+Install the following packages:
+
+ grub-common
+ grub-efi-amd64-bin
+ grub-gfxpayload-lists
+ grub-pc
+ grub-pc-bin
+ grub2-common
 
 == Install Grub2-efi to the ESP
 
@@ -49,6 +63,10 @@ Configure grub.cfg with
 
  # grub-mkconfig -o /boot/grub/grub.cfg
 
+or, 
+
+  update-grub
+
 == Install Grub2-efi 
 
 http://wiki.gentoo.org/wiki/GRUB2 +
@@ -62,6 +80,14 @@ This will install grub in /boot/grub, copy the core image to /boot/efi/EFI/gento
   efibootmgr -q -c -d /dev/sda -p 2 -w -L grub -l \EFI\grub\grubx64.efi
 
 efibootmgr may fail if the system is not already booted in EFI mode. If so, you will need to boot your system in EFI mode using an EFI shell or a suitable EFI boot media.
+
+https://help.ubuntu.com/community/Grub2
+
+Recreate the GRUB 2 menu file (grub.cfg)
+
+  update-grub
+
+NB, Changes made in the configuration files will not take effect until the update-grub command is executed.
 
 == References
 
@@ -87,11 +113,18 @@ westie457; October 8th, 2013
 
 === Referenced urls
 
-http://wiki.gentoo.org/wiki/GRUB2 +
 http://docs.slackware.com/howtos:slackware_admin:set_up_grub_as_boot_loader_on_uefi_based_hardware +
 https://wiki.archlinux.org/index.php/Grub#UEFI_systems_2 +
 https://wiki.archlinux.org/index.php/GPT +
 http://ubuntuforums.org/showthread.php?t=2179171 +
- +
- +
+https://help.ubuntu.com/community/UEFI +
+https://help.ubuntu.com/community/UEFIBooting +
+https://help.ubuntu.com/community/Grub2 +
+https://help.ubuntu.com/community/Grub2/Installing +
+https://help.ubuntu.com/community/Grub2/Submenus +
+https://help.ubuntu.com/community/Grub2/ISOBoot/Examples +
+http://wiki.gentoo.org/wiki/GRUB2 +
+https://wiki.archlinux.org/index.php/GRUB +
+http://community.linuxmint.com/tutorial/view/910 +
+http://askubuntu.com/questions/344125/how-to-add-a-grub2-menu-entry-for-booting-installed-ubuntu-on-a-usb-drive +
  +
