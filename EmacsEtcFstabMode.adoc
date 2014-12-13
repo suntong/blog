@@ -1,6 +1,6 @@
 = Emacs Etc Fstab Mode
 
-:blogpost-categories: linux,eamcs
+:blogpost-categories: linux,emacs
 
 Today I decided to take advantage of the new +/etc/fstab.d/+ directory, so I re-factored my big +/etc/fstab+ file into three separated files under +/etc/fstab.d/+:
 
