@@ -69,6 +69,38 @@ Code block
 }
 ```
 
+The following languages are supported:
+
+- actionscript3
+- bash
+- clojure
+- coldfusion
+- cpp
+- csharp
+- css
+- delphi
+- erlang
+- fsharp
+- diff
+- groovy
+- html
+- javascript
+- java
+- javafx
+- matlab (keywords only)
+- objc
+- perl
+- php
+- text
+- powershell
+- python
+- r
+- ruby
+- scala
+- sql
+- vb
+- xml
+
 Definition Lists
 
 WordPress
@@ -205,6 +237,10 @@ Here's our logo (hover to see the title text):
 
 Inline-style: 
 ![alt text](https://github.com/adam-p/markdown-here/raw/master/src/common/images/icon48.png "Logo Title Text 1")
+
+Linked Images:
+[![alt text](http://s.wordpress.org/about/images/wpmini-grey.png)](http://wordpress.com/ "Title")
+
 
 Reference-style: 
 ![alt text][logo]
