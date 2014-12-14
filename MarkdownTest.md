@@ -1,6 +1,6 @@
 # An exhibit of Markdown
 
-[tags markdown]
+[category Tech][tags markdown]
 
 This note demonstrates some of what wordpress Markdown is capable of doing.
 
@@ -68,6 +68,8 @@ Code block
 	border: none;
 }
 ```
+
+http://en.support.wordpress.com/code/posting-source-code/
 
 The following languages are supported:
 

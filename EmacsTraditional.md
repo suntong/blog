@@ -1,6 +1,6 @@
 # Bring back the Traditional Emacs
 
-[tags Debian,Ubuntu,linux,emacs,editor]
+[category Tech][tags Debian,Ubuntu,linux,emacs,editor]
 
 Want to have the Emacs that you used to love? Read on, or jump to [my conclusion](#emacs-traditional). 
 
