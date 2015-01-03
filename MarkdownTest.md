@@ -44,13 +44,32 @@ Lists
 
 1. Item
 2. Item
-   * Mixed
-   * Mixed  
+   * Mixed 1
+   * Mixed 1
+     * Mixed 2
+     * Mixed 2
+   - Or minuses
+     + Or pluses
 3. Item
 
-* Unordered list can use asterisks
+Break it apart.
+
+* Unordered list nicely aligned but not properly rendered
   - Or minuses
-   + Or pluses
+  - Or minuses
+    + Or pluses
+    + Or pluses
+
+Now,
+
+*  Unordered list properly rendered
+   * Mixed 1
+   * Mixed 1
+     * Mixed 2
+     * Mixed 2
+   - Or minuses
+     + Or pluses
+*  Back to level one
 
 Preformatted
 
