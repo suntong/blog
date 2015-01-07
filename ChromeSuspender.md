@@ -8,6 +8,16 @@ The problem is that the issue has been reported and confirmed for over 3 months 
 
 <!--more-->
 
+
+<!-- markdown-toc start - Don't edit this section. Run M-x markdown-toc/generate-toc again -->
+**Table of Contents**
+
+- [Chrome massive memory leak and solution](#chrome-massive-memory-leak-and-solution)
+    - [The Great Suspender](#the-great-suspender)
+    - [Use the cache!](#use-the-cache)
+
+<!-- markdown-toc end -->
+
 ## The Great Suspender
 
 As a workaround, I found ["The Great Suspender"](https://chrome.google.com/webstore/detail/the-great-suspender/klbibkeccnjlkjkiokjodocebajanakg):
