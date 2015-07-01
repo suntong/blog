@@ -236,6 +236,7 @@ Some text to show that the reference links can follow later.
 [link text itself]: http://www.reddit.com
 
 <a name="internal"/>
+
 ### internal links / named anchors
 
 For Markdown's support for internal links / named anchors,
