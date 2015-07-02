@@ -37,16 +37,16 @@ The colors are: {{range .Colors}}{{.}}, {{end}}.
 I.e., no-sweat to throw in a loop, piece of cake. The result is as expected:
 
 
-	$ EasyGen list0 
+	$ EasyGen Test/list0 
 	The colors are: red, blue, white, .
 
 From the same data source, you can choose either the text template or the HTML template as the presentation format: 
 
 ```
-$ EasyGen list1
+$ EasyGen Test/list1
 The quoted colors are: "red", "blue", "white", .
 
-$ EasyGen -html list1
+$ EasyGen -html Test/list1
 The quoted colors are: &#34;red&#34;, &#34;blue&#34;, &#34;white&#34;, .
 
 ```
@@ -55,7 +55,7 @@ As you can see, HTML specific elements ARE being taken care of, if you want them
 
 Now onto the real power of Go Template -- the comma after "white" and before the ending period looks ugly, let's get rid of it:
 
-	$ EasyGen listfunc1 
+	$ EasyGen Test/listfunc1 
 	red, blue, white.
 
 See? It's gone. Now, how is that done? Simple, the data source is still the same, the template is now:
@@ -222,7 +222,7 @@ ConfigPath:
 Once that's done, with the help of [`commandlineCVFull.tmpl`](https://github.com/suntong001/EasyGen/blob/master/commandlineCVFull.tmpl) template, auto code generation is a breeze:
 
 ```
-$ EasyGen commandlineCVFull 
+$ EasyGen Test/commandlineCVFull 
 func init() {
 
   viper.SetEnvPrefix("DISPATCH")
