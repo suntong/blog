@@ -177,7 +177,7 @@ For years I've been looking for alternatives, and I've finally found one now. Th
 In my earlier article on [viper](https://sfxpt.wordpress.com/2015/06/25/viper-go-configuration-with-fangs/), there lists an example using `viper` and `cobra` together for configuration and command line parameter handling. If you take a closer look at the code,  despite the repetitive structural code, the driving data can be extracted into the following Yaml definition:
 
 ```
-$ cat commandlineCVFull.yaml
+$ cat Test/commandlineCVFull.yaml
 CmdMain: mainCmd
 CmdPrefix: DISPATCH
 
