@@ -33,6 +33,10 @@ Some text with [a link][1] and another [link][2].
 [1]: http://example.com/ "Title"
 [2]: http://example.org/ "Title"
 
+Images Inline-style: 
+![alt text](https://github.com/adam-p/markdown-here/raw/master/src/common/images/icon48.png "Logo Title Text 1")
+
+
 Linked Images:
 [![alt text](http://s.wordpress.org/about/images/wpmini-grey.png)](http://wordpress.com/ "Title")
 
