@@ -6,7 +6,7 @@ To build strings gradually, CSharp has `StringBuilder`. What does Go have? Super
 
 Let's see the Go's idiosyncrasy of string building.
 
-[more]
+<!--more-->
 
 ## My intuitive code
 
