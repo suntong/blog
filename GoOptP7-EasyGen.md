@@ -7,6 +7,7 @@ This concludes the [mini series](https://sfxpt.wordpress.com/2015/06/16/providin
 <!--more-->
 
 <a name="dt"/>
+
 ## Data transformation
 
 I love [LaTeX](https://en.wikipedia.org/wiki/LaTeX), because I love the concept of it, over the [WYGIWYS](http://acronyms.thefreedictionary.com/WYGIWYS) one, because in LaTeX, you describe things in terms of what they are, instead of what they look like. Thus, you can change their look to whatever you want later at a single point, without going all over the places to change each one of them. Moreover, with this single source, you can transform it into different presentation formats, be it `.ps`, `.pdf`, `.html`, or even `.rtf`. That's the power of separating the data definition and data presentation. 
@@ -14,6 +15,7 @@ I love [LaTeX](https://en.wikipedia.org/wiki/LaTeX), because I love the concept 
 Talking about data transformation, we all know that [XSLT](https://en.wikipedia.org/wiki/XSLT) is used for transforming data defined in XML format into other formats or even documents. It's a really good concept, but the reason that it never really takes off, I believe, is that it is really too cumbersome to use. I use [xmlstarlet](http://xmlstar.sourceforge.net/) instead to transform/convert my XML data. It is far more convenient than XSLT on the data presentation side; but still, on the data definition side, I still have to use XML, which is still not very convenient. Things will get far worse if the XML namespace is involved -- it'd be quite a struggle for me to get things right eventually. 
 
 <a name="efdt"/>
+
 ## EasyGen for data transformation
 
 Welcome to the [EasyGen](https://github.com/suntong001/EasyGen) world, in which 
@@ -73,6 +75,7 @@ Yet, this is only revealing a tip of the iceberg of [Go Template](https://goo.gl
 
 
 <a name="cg"/>
+
 ## Code generation
 
 I'm really found of code auto-generation. I've been using a tool called GSL for that purpose for more than 10 years. If anything is structurally repetitive, I'll use GSL to auto-generate them for me. Commandline processing is a very good example. Take a look at the following sample, you will notice lots of repetitive things:
@@ -172,6 +175,7 @@ The [Grml](http://grml.org/)'s [grml-debootstrap(8)](https://grml.org/grml-deboo
 For years I've been looking for alternatives, and I've finally found one now. The answer is [EasyGen](https://github.com/suntong001/EasyGen). Let's find out how it can help command line parameter handling for Go code.
 
 <a name="efcg"/>
+
 ## EasyGen for code generation
 
 In my earlier article on [viper](https://sfxpt.wordpress.com/2015/06/25/viper-go-configuration-with-fangs/), there lists an example using `viper` and `cobra` together for configuration and command line parameter handling. If you take a closer look at the code,  despite the repetitive structural code, the driving data can be extracted into the following Yaml definition:
@@ -274,7 +278,7 @@ func init() {
 }
 ```
 
-Boom! Done!
+Done!
 
 I used space in my Go template because the [tabs were giving me headaces](https://groups.google.com/d/msg/golang-nuts/9jKexxD19Js/1hhnfmD5ckAJ) when putting the results into automatic testing. You can surely use tabs in your Go template, that's not a problem at all, and I was even able to make one work for Go automatic testing. Check out the [previous example](https://github.com/suntong001/EasyGen/blob/master/commandlineCV.yaml), [commandlineCV](https://github.com/suntong001/EasyGen/blob/master/commandlineCV.tmpl).
 
